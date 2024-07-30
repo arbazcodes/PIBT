@@ -1,34 +1,11 @@
 #include "astar.h"
+#include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
 #include <limits>
-#include <cmath>
-#include <queue>
 #include <stack>
-#include <string>
-#include <iostream>
 
-AStar::AStar(const char *file){
-    loadGrid(file);
-    ROW = grid.size();
-    COL = grid[0].size();
-}
-
-void AStar::loadGrid(const char *file) {
-    int tileCode;
-    string line;
-    ifstream fstream(file);
-    if (fstream) {
-        while (getline(fstream, line)) {
-            istringstream sstream(line);
-            vector<int> row;
-            while (sstream >> tileCode)
-                row.push_back(tileCode);
-            grid.push_back(row);
-        }
-    }
-}
+AStar::AStar(const vector<vector<int>>& grid) : grid(grid), ROW(grid.size()), COL(grid[0].size()) {}
 
 bool AStar::isValid(int row, int col) const {
     return (row >= 0) && (row < ROW) && (col >= 0) && (col < COL);
@@ -39,64 +16,25 @@ bool AStar::isUnBlocked(int row, int col) const {
 }
 
 bool AStar::isDestination(int row, int col, Pair dest) const {
-    return row == dest.first && col == dest.second;
+    return row == dest.second && col == dest.first;
 }
 
 double AStar::calculateHValue(int row, int col, Pair dest) const {
-    return sqrt((row - dest.first) + (col - dest.second));
+    return ((row - dest.second) + (col - dest.first));
 }
 
-vector<vector<int>> AStar::tracePath(const vector<vector<Cell>>& cellDetails, Pair dest) const {
-    vector<vector<int>> path;
-    stack<vector<int>> Path;
-    int row = dest.first;
-    int col = dest.second;
-    int time = cellDetails[row][col].time;
-
-    while (!(cellDetails[row][col].parent_i == row && cellDetails[row][col].parent_j == col)) {
-        Path.push({row, col, time});
-        int temp_row = cellDetails[row][col].parent_i;
-        int temp_col = cellDetails[row][col].parent_j;
-        int temp_time = cellDetails[row][col].time;
-        row = temp_row;
-        col = temp_col;
-        time = temp_time;
-
+bool AStar::violatesConstraints(int row, int col, int timestep, const vector<tuple<int, int, int>>& constraints) const {
+    for (const auto& constraint : constraints) {
+        int cx, cy, ct;
+        tie(cx, cy, ct) = constraint;
+        if (cy == col && cx == row && ct == timestep) {
+            return true;
+        }
     }
-    Path.push({row, col, time});
-
-    while (!Path.empty()) {
-        auto p = Path.top();
-        Path.pop();
-        path.push_back({p[1], p[0], p[2]});
-    }
-    return path;
+    return false;
 }
 
-vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, vector<int> constraint) {
-    swap(src.first, src.second);
-    swap(dest.first, dest.second);
-    vector<vector<int>> path;
-
-    if (!isValid(src.first, src.second) || !isValid(dest.first, dest.second)) {
-        cout << "Source or Destination is invalid\n";
-        return path;
-    }
-
-    if (!isUnBlocked(src.first, src.second) || !isUnBlocked(dest.first, dest.second)) {
-        cout << "Source or Destination is blocked\n";
-        return path;
-    }
-
-    if (isDestination(src.first, src.second, dest)) {
-        cout << "We are already at the destination\n";
-        path.push_back({src.first, src.second});
-        return path;
-    }
-
-    vector<vector<Cell>> cellDetails(ROW, vector<Cell>(COL));
-    vector<vector<bool>> closedList(ROW, vector<bool>(COL, false));
-
+void AStar::initializeCells(vector<vector<Cell>>& cellDetails) {
     for (int i = 0; i < ROW; ++i) {
         for (int j = 0; j < COL; ++j) {
             cellDetails[i][j].f = numeric_limits<double>::max();
@@ -107,9 +45,58 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, vector<int> constrai
             cellDetails[i][j].time = -1;
         }
     }
+}
 
-    int i = src.first;
-    int j = src.second;
+vector<vector<int>> AStar::tracePath(const vector<vector<Cell>>& cellDetails, Pair dest) const {
+    vector<vector<int>> path;
+    stack<vector<int>> Path;
+    int row = dest.second;
+    int col = dest.first;
+
+    while (!(cellDetails[row][col].parent_i == row && cellDetails[row][col].parent_j == col)) {
+        Path.push({col, row, cellDetails[row][col].time});
+        int temp_row = cellDetails[row][col].parent_i;
+        int temp_col = cellDetails[row][col].parent_j;
+        row = temp_row;
+        col = temp_col;
+    }
+    Path.push({col, row, cellDetails[row][col].time});
+
+    while (!Path.empty()) {
+        path.push_back(Path.top());
+        Path.pop();
+    }
+
+    return path;
+}
+
+vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, const vector<tuple<int, int, int>>& constraints) {
+    vector<vector<int>> path;
+
+    if (!isValid(src.second, src.first) || !isValid(dest.second, dest.first)) {
+        cout << "Source or Destination is invalid\n";
+        return path;
+    }
+
+    if (!isUnBlocked(src.second, src.first) || !isUnBlocked(dest.second, dest.first)) {
+        cout << "Source or Destination is blocked\n";
+        return path;
+    }
+
+    if (isDestination(src.second, src.first, dest)) {
+        cout << "We are already at the destination\n";
+        path.push_back({src.first, src.second});
+        return path;
+    }
+
+    vector<vector<Cell>> cellDetails(ROW, vector<Cell>(COL));
+    initializeCells(cellDetails);
+
+    // Declare and initialize closedList
+    vector<vector<bool>> closedList(ROW, vector<bool>(COL, false));
+
+    int i = src.second;
+    int j = src.first;
     cellDetails[i][j].f = 0.0;
     cellDetails[i][j].g = 0.0;
     cellDetails[i][j].h = 0.0;
@@ -129,8 +116,8 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, vector<int> constrai
         pPair p = openList.top();
         openList.pop();
 
-        i = p.second.first;
-        j = p.second.second;
+        i = p.second.second;
+        j = p.second.first;
         int timestep = cellDetails[i][j].time + 1;
         closedList[i][j] = true;
 
@@ -138,11 +125,7 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, vector<int> constrai
             int newRow = i + rowNum[k];
             int newCol = j + colNum[k];
 
-            if (isValid(newRow, newCol)) {
-                if (newRow == constraint[1] && newCol == constraint[0] && timestep == constraint[2] - 1) {
-                    continue; 
-                }
-
+            if (isValid(newRow, newCol) && !violatesConstraints(newCol, newRow, timestep, constraints)) {
                 if (isDestination(newRow, newCol, dest)) {
                     cellDetails[newRow][newCol].parent_i = i;
                     cellDetails[newRow][newCol].parent_j = j;
@@ -157,7 +140,7 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, vector<int> constrai
                     double fNew = gNew + hNew;
 
                     if (cellDetails[newRow][newCol].f == numeric_limits<double>::max() || cellDetails[newRow][newCol].f > fNew) {
-                        openList.push({fNew, {newRow, newCol}});
+                        openList.push({fNew, {newCol, newRow}});
                         cellDetails[newRow][newCol].f = fNew;
                         cellDetails[newRow][newCol].g = gNew;
                         cellDetails[newRow][newCol].h = hNew;

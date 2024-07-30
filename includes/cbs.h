@@ -12,14 +12,14 @@ class cbs
 {
 
 public:
-    cbs();
+    //cbs();
 
     vector<vector<int>> findConflicts(vector<vector<int>> Paths);
 
     vector<vector<int>> generateConstraints(vector<vector<int>> Conflicts);
     
-    vector<vector<vector<int>>> cbs_low_level(vector<Pair> sources, vector<Pair> destinatoins);
-    vector<vector<vector<int>>> cbs_high_level(vector<Pair> sources, vector<Pair> destinatoins);
+    vector<vector<vector<int>>> low_level(vector<Pair> sources, vector<Pair> destinatoins);
+    vector<vector<vector<int>>> high_level(vector<Pair> sources, vector<Pair> destinatoins);
     
 };
 

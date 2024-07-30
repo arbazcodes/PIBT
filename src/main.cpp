@@ -1,21 +1,25 @@
 #include "astar.h"
 #include <iostream>
-#include <vector>
-
-using namespace std;
 
 int main() {
+    vector<vector<int>> grid = {
+        {1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1}
+    };
 
-    AStar astar("C:/Users/Lenovo/Desktop/Sim/levels/one.lvl");
+    AStar astar(grid);
 
-    vector<Pair> sources = {{1, 1}, {2, 2}}; 
+    Pair source = {1, 1};
+    Pair destination = {1, 4};
+    vector<tuple<int, int, int>> constraints = {{1, 2, 1}};
 
-    // Find paths using A* search
-    vector<vector<int>> path = astar.aStarSearch(make_pair(1, 1), make_pair(4, 4), {2, 1, 2});
+    vector<vector<int>> path = astar.aStarSearch(source, destination, constraints);
 
-    for (const auto& node : path) 
-    {
-        cout << "(" << node[0] << ", " << node[1] << ", "<<node[2]<<") ";
+    for (const auto& node : path) {
+        cout << "(" << node[0] << ", " << node[1] << ", " << node[2] << ") ";
     }
     cout << endl;
 
