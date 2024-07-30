@@ -92,7 +92,6 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, const vector<tuple<i
     vector<vector<Cell>> cellDetails(ROW, vector<Cell>(COL));
     initializeCells(cellDetails);
 
-    // Declare and initialize closedList
     vector<vector<bool>> closedList(ROW, vector<bool>(COL, false));
 
     int i = src.second;
