@@ -23,10 +23,12 @@ double AStar::calculateHValue(int row, int col, Pair dest) const {
     return ((row - dest.second) + (col - dest.first));
 }
 
-bool AStar::violatesConstraints(int row, int col, int timestep, const vector<tuple<int, int, int>>& constraints) const {
+bool AStar::violatesConstraints(int row, int col, int timestep, const vector<Constraint>& constraints) const {
     for (const auto& constraint : constraints) {
         int cx, cy, ct;
-        tie(cx, cy, ct) = constraint;
+        cx = constraint.x;
+        cy  = constraint.y;
+        ct = constraint.time;
         if (cy == col && cx == row && ct == timestep) {
             return true;
         }
@@ -70,7 +72,7 @@ vector<vector<int>> AStar::tracePath(const vector<vector<Cell>>& cellDetails, Pa
     return path;
 }
 
-vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, const vector<tuple<int, int, int>>& constraints) {
+vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, const vector<Constraint>& constraints) {
     vector<vector<int>> path;
 
     if (!isValid(src.second, src.first) || !isValid(dest.second, dest.first)) {

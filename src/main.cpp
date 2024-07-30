@@ -1,4 +1,4 @@
-#include "astar.h"
+#include "cbs.h"
 #include <iostream>
 
 int main() {
@@ -10,18 +10,22 @@ int main() {
         {1, 1, 1, 1, 1}
     };
 
-    AStar astar(grid);
+    cbs cbs(grid);
 
-    Pair source = {1, 1};
-    Pair destination = {1, 4};
-    vector<tuple<int, int, int>> constraints = {{1, 2, 1}};
+    vector<Pair> sources = {{1, 1}, {2, 2}};
+    vector<Pair> destinations = {{1, 4}, {3, 3}};
+    vector<Constraint> constraints = {{0, 1, 2, 1}, {1, 3, 3, 2}, {1, 2, 3, 1}};
 
-    vector<vector<int>> path = astar.aStarSearch(source, destination, constraints);
+    vector<vector<vector<int>>> paths = cbs.low_level(sources, destinations, constraints);
 
-    for (const auto& node : path) {
-        cout << "(" << node[0] << ", " << node[1] << ", " << node[2] << ") ";
+    for (size_t i = 0; i < sources.size(); i++)
+    {
+        for (const auto& node : paths[i]) {
+            cout << "(" << node[0] << ", " << node[1] << ", " << node[2] << ") ";
+        }
+        cout << endl;
     }
-    cout << endl;
+    
 
     return 0;
 }

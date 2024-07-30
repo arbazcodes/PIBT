@@ -18,10 +18,16 @@ struct Cell {
     int time;
 };
 
+struct Constraint
+{
+    int ID, x, y, time;
+};
+
 class AStar {
 public:
+    AStar();
     AStar(const vector<vector<int>>& grid);
-    vector<vector<int>> aStarSearch(Pair src, Pair dest, const vector<tuple<int, int, int>>& constraints);
+    vector<vector<int>> aStarSearch(Pair src, Pair dest, const vector<Constraint>& constraints);
 
 private:
     vector<vector<int>> grid;
@@ -33,7 +39,7 @@ private:
     bool isDestination(int row, int col, Pair dest) const;
     double calculateHValue(int row, int col, Pair dest) const;
     vector<vector<int>> tracePath(const vector<vector<Cell>>& cellDetails, Pair dest) const;
-    bool violatesConstraints(int row, int col, int timestep, const vector<tuple<int, int, int>>& constraints) const;
+    bool violatesConstraints(int row, int col, int timestep, const vector<Constraint>& constraints) const;
 };
 
 #endif
