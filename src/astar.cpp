@@ -1,163 +1,100 @@
 #include "astar.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <limits>
-#include <stack>
+#include <queue>
+#include <cmath>
+#include <algorithm>
 
-AStar::AStar(const vector<vector<int>>& grid) : grid(grid), ROW(grid.size()), COL(grid[0].size()) {}
-
-bool AStar::isValid(int row, int col) const {
-    return (row >= 0) && (row < ROW) && (col >= 0) && (col < COL);
-}
-
-bool AStar::isUnBlocked(int row, int col) const {
-    return grid[row][col] == 1;
-}
-
-bool AStar::isDestination(int row, int col, Pair dest) const {
-    return row == dest.second && col == dest.first;
-}
-
-double AStar::calculateHValue(int row, int col, Pair dest) const {
-    return ((row - dest.second) + (col - dest.first));
-}
-
-bool AStar::violatesConstraints(int row, int col, int timestep, const vector<Constraint>& constraints) const {
-    for (const auto& constraint : constraints) {
-        int cx, cy, ct;
-        cx = constraint.x;
-        cy  = constraint.y;
-        ct = constraint.time;
-        if (cy == col && cx == row && ct == timestep) {
-            return true;
+namespace std {
+    // Hash function for pair of Pair and int
+    template <>
+    struct hash<pair<Pair, int>> {
+        size_t operator()(const pair<Pair, int>& p) const {
+            return hash<int>()(p.first.first) ^ hash<int>()(p.first.second) ^ hash<int>()(p.second);
         }
-    }
-    return false;
-}
+    };
 
-void AStar::initializeCells(vector<vector<Cell>>& cellDetails) {
-    for (int i = 0; i < ROW; ++i) {
-        for (int j = 0; j < COL; ++j) {
-            cellDetails[i][j].f = numeric_limits<double>::max();
-            cellDetails[i][j].g = numeric_limits<double>::max();
-            cellDetails[i][j].h = numeric_limits<double>::max();
-            cellDetails[i][j].parent_i = -1;
-            cellDetails[i][j].parent_j = -1;
-            cellDetails[i][j].time = -1;
+    // Hash function for Pair
+    template <>
+    struct hash<Pair> {
+        size_t operator()(const Pair& p) const {
+            return hash<int>()(p.first) ^ hash<int>()(p.second);
         }
-    }
+    };
 }
 
-vector<vector<int>> AStar::tracePath(const vector<vector<Cell>>& cellDetails, Pair dest) const {
-    vector<vector<int>> path;
-    stack<vector<int>> Path;
-    int row = dest.second;
-    int col = dest.first;
-
-    while (!(cellDetails[row][col].parent_i == row && cellDetails[row][col].parent_j == col)) {
-        Path.push({col, row, cellDetails[row][col].time});
-        int temp_row = cellDetails[row][col].parent_i;
-        int temp_col = cellDetails[row][col].parent_j;
-        row = temp_row;
-        col = temp_col;
-    }
-    Path.push({col, row, cellDetails[row][col].time});
-
-    while (!Path.empty()) {
-        path.push_back(Path.top());
-        Path.pop();
-    }
-
-    return path;
+int manhattan_distance(const Pair& a, const Pair& b) {
+    return abs(a.first - b.first) + abs(a.second - b.second);
 }
 
-vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, const vector<Constraint>& constraints) {
-    vector<vector<int>> path;
+vector<vector<int>> a_star_algorithm(const Pair& start, const Pair& goal, const vector<Constraint>& constraints, const vector<vector<int>>& grid) {
+    int rows = grid.size();
+    int cols = rows > 0 ? grid[0].size() : 0;
 
-    if (!isValid(src.second, src.first) || !isValid(dest.second, dest.first)) {
-        cout << "Source or Destination is invalid\n";
-        return path;
+    // Directions for moving in the grid (right, down, left, up)
+    vector<Pair> directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+
+    // Priority queue for A* search
+    priority_queue<tuple<int, Pair, int>, vector<tuple<int, Pair, int>>, greater<tuple<int, Pair, int>>> open_list;
+    open_list.push({0, start, 0});  // (priority, (x, y), time_step)
+
+    // Distance cost map
+    unordered_map<Pair, int, hash<Pair>> g_costs;
+    g_costs[start] = 0;
+
+    // Map for storing the path
+    unordered_map<pair<Pair, int>, pair<Pair, int>, hash<pair<Pair, int>>> came_from;
+
+    // Set of constraints for quick lookup
+    unordered_map<int, unordered_set<Pair>> constraint_map;
+    for (const auto& c : constraints) {
+        constraint_map[c.time].insert({c.x, c.y});
     }
 
-    if (!isUnBlocked(src.second, src.first) || !isUnBlocked(dest.second, dest.first)) {
-        cout << "Source or Destination is blocked\n";
-        return path;
-    }
+    while (!open_list.empty()) {
+        auto [_, current, time_step] = open_list.top();
+        open_list.pop();
 
-    if (isDestination(src.second, src.first, dest)) {
-        cout << "We are already at the destination\n";
-        path.push_back({src.first, src.second});
-        return path;
-    }
+        if (current == goal) {
+            vector<vector<int>> path;
+            while (came_from.find({current, time_step}) != came_from.end()) {
+                path.push_back({current.first, current.second, time_step});
+                auto [prev, prev_time_step] = came_from[{current, time_step}];
+                current = prev;
+                time_step = prev_time_step;
+            }
+            path.push_back({start.first, start.second, 0});
+            reverse(path.begin(), path.end());
+            return path;
+        }
 
-    vector<vector<Cell>> cellDetails(ROW, vector<Cell>(COL));
-    initializeCells(cellDetails);
+        // Explore neighbors
+        for (const auto& direction : directions) {
+            Pair next_cell = {current.first + direction.first, current.second + direction.second};
+            int next_time_step = time_step + 1;
 
-    vector<vector<bool>> closedList(ROW, vector<bool>(COL, false));
+            // Check if next cell is within bounds and not blocked
+            if (next_cell.first < 0 || next_cell.first >= rows ||
+                next_cell.second < 0 || next_cell.second >= cols ||
+                grid[next_cell.first][next_cell.second] != 1) {
+                continue;
+            }
 
-    int i = src.second;
-    int j = src.first;
-    cellDetails[i][j].f = 0.0;
-    cellDetails[i][j].g = 0.0;
-    cellDetails[i][j].h = 0.0;
-    cellDetails[i][j].parent_i = i;
-    cellDetails[i][j].parent_j = j;
-    cellDetails[i][j].time = 0;
+            // Check constraints
+            if (constraint_map.find(next_time_step) != constraint_map.end() &&
+                constraint_map[next_time_step].find(next_cell) != constraint_map[next_time_step].end()) {
+                continue;
+            }
 
-    priority_queue<pPair, vector<pPair>, greater<>> openList;
-    openList.push({0.0, {i, j}});
+            // Calculate the cost
+            int new_g_cost = g_costs[current] + 1; // Assuming each move has cost 1
 
-    bool foundDest = false;
-
-    vector<int> rowNum = {-1, 1, 0, 0};
-    vector<int> colNum = {0, 0, -1, 1};
-
-    while (!openList.empty()) {
-        pPair p = openList.top();
-        openList.pop();
-
-        i = p.second.second;
-        j = p.second.first;
-        int timestep = cellDetails[i][j].time + 1;
-        closedList[i][j] = true;
-
-        for (int k = 0; k < 4; ++k) {
-            int newRow = i + rowNum[k];
-            int newCol = j + colNum[k];
-
-            if (isValid(newRow, newCol) && !violatesConstraints(newCol, newRow, timestep, constraints)) {
-                if (isDestination(newRow, newCol, dest)) {
-                    cellDetails[newRow][newCol].parent_i = i;
-                    cellDetails[newRow][newCol].parent_j = j;
-                    cellDetails[newRow][newCol].time = timestep;
-                    cout << "The destination cell is found\n";
-                    path = tracePath(cellDetails, dest);
-                    foundDest = true;
-                    return path;
-                } else if (!closedList[newRow][newCol] && isUnBlocked(newRow, newCol)) {
-                    double gNew = cellDetails[i][j].g + 1.0;
-                    double hNew = calculateHValue(newRow, newCol, dest);
-                    double fNew = gNew + hNew;
-
-                    if (cellDetails[newRow][newCol].f == numeric_limits<double>::max() || cellDetails[newRow][newCol].f > fNew) {
-                        openList.push({fNew, {newCol, newRow}});
-                        cellDetails[newRow][newCol].f = fNew;
-                        cellDetails[newRow][newCol].g = gNew;
-                        cellDetails[newRow][newCol].h = hNew;
-                        cellDetails[newRow][newCol].parent_i = i;
-                        cellDetails[newRow][newCol].parent_j = j;
-                        cellDetails[newRow][newCol].time = timestep;
-                    }
-                }
+            if (g_costs.find(next_cell) == g_costs.end() || new_g_cost < g_costs[next_cell]) {
+                g_costs[next_cell] = new_g_cost;
+                int f_cost = new_g_cost + manhattan_distance(next_cell, goal);
+                open_list.push({f_cost, next_cell, next_time_step});
+                came_from[{next_cell, next_time_step}] = {current, time_step};
             }
         }
     }
 
-    if (!foundDest) {
-        cout << "Failed to find the Destination Cell\n";
-    }
-
-    return path;
+    return {}; // If no path is found
 }
-

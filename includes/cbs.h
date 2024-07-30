@@ -7,26 +7,19 @@
 
 using namespace std;
 
-typedef pair<int, int> Pair;
-
+typedef pair<int, vector<vector<int>>> CostPath;
 
 class cbs
 {
 
 public:
-    
-    AStar astar;
 
+    vector<vector<int>> Grid;
     cbs(vector<vector<int>> grid);
-    vector<vector<int>> findConflicts(vector<vector<int>> Paths);
+    vector<vector<int>> findConflicts(vector<CostPath> Solution);
     vector<Constraint> generateConstraints(vector<vector<int>> Conflicts);
-    vector<vector<vector<int>>> low_level(vector<Pair> sources, vector<Pair> destinatoins, const vector<Constraint>& constraints);
+    vector<CostPath> low_level(vector<Pair> sources, vector<Pair> destinatoins, const vector<Constraint>& constraints);
     vector<vector<vector<int>>> high_level(vector<Pair> sources, vector<Pair> destinatoins);
     
 };
-
-
-
-
-
  #endif
