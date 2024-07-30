@@ -54,7 +54,7 @@ vector<vector<int>> AStar::tracePath(const vector<vector<Cell>>& cellDetails, Pa
     int time = cellDetails[row][col].time;
 
     while (!(cellDetails[row][col].parent_i == row && cellDetails[row][col].parent_j == col)) {
-        Path.push({row, col,time});
+        Path.push({row, col, time});
         int temp_row = cellDetails[row][col].parent_i;
         int temp_col = cellDetails[row][col].parent_j;
         int temp_time = cellDetails[row][col].time;
@@ -73,8 +73,7 @@ vector<vector<int>> AStar::tracePath(const vector<vector<Cell>>& cellDetails, Pa
     return path;
 }
 
-vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest) {
-
+vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest, vector<int> constraint) {
     swap(src.first, src.second);
     swap(dest.first, dest.second);
     vector<vector<int>> path;
@@ -109,8 +108,6 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest) {
         }
     }
 
-    int timestep = 0;
-
     int i = src.first;
     int j = src.second;
     cellDetails[i][j].f = 0.0;
@@ -118,7 +115,7 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest) {
     cellDetails[i][j].h = 0.0;
     cellDetails[i][j].parent_i = i;
     cellDetails[i][j].parent_j = j;
-    cellDetails[i][j].time = timestep;
+    cellDetails[i][j].time = 0;
 
     priority_queue<pPair, vector<pPair>, greater<>> openList;
     openList.push({0.0, {i, j}});
@@ -134,15 +131,18 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest) {
 
         i = p.second.first;
         j = p.second.second;
+        int timestep = cellDetails[i][j].time + 1;
         closedList[i][j] = true;
-
-        ++timestep;
 
         for (int k = 0; k < 4; ++k) {
             int newRow = i + rowNum[k];
             int newCol = j + colNum[k];
 
             if (isValid(newRow, newCol)) {
+                if (newRow == constraint[1] && newCol == constraint[0] && timestep == constraint[2] - 1) {
+                    continue; 
+                }
+
                 if (isDestination(newRow, newCol, dest)) {
                     cellDetails[newRow][newCol].parent_i = i;
                     cellDetails[newRow][newCol].parent_j = j;
@@ -168,7 +168,6 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest) {
                 }
             }
         }
-
     }
 
     if (!foundDest) {
@@ -177,3 +176,4 @@ vector<vector<int>> AStar::aStarSearch(Pair src, Pair dest) {
 
     return path;
 }
+

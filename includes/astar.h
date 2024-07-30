@@ -19,7 +19,7 @@ class AStar {
 public:
     AStar(const char *file);
 
-    vector<vector<int>> aStarSearch(Pair src, Pair dest);
+    vector<vector<int>> aStarSearch(Pair src, Pair dest, vector<int> constraint);
 
     vector<vector<int>> grid;
     int ROW;

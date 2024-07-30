@@ -11,7 +11,7 @@ int main() {
     vector<Pair> sources = {{1, 1}, {2, 2}}; 
 
     // Find paths using A* search
-    vector<vector<int>> path = astar.aStarSearch(make_pair(1, 1), make_pair(2, 2));
+    vector<vector<int>> path = astar.aStarSearch(make_pair(1, 1), make_pair(4, 4), {2, 1, 2});
 
     for (const auto& node : path) 
     {
