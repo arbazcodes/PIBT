@@ -2,47 +2,46 @@
 #include "cbs.h"
 
 int main() {
-    vector<Pair> starts = {{1, 2}, {2, 0}, {0, 1}};
-    vector<Pair> goals = {{2, 1}, {2, 3}, {4, 1}};
-    vector<Constraint> constraints = {
-        // {0, 3, 2, 1}, {1, 0, 3, 1}, {1, 3, 4, 5}
-    };
+    vector<Pair> starts = {{0, 0}, {2, 0}, {2, 2}};
+    vector<Pair> goals = {{2, 0}, {1, 0}, {0, 0}};
+    
+    vector<Constraint> constraints = {};
+    
     vector<vector<int>> grid = {
-        {1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1}
+        {1, 1, 1},
+        {1, 1, 1},
+        {1, 1, 1}
     };
 
-    cbs cbs(grid);
+    cbs cbsAlgorithm(grid);
 
-    vector<CostPath> Solution = cbs.low_level(starts, goals, constraints);
+    vector<CostPath> solution = cbsAlgorithm.high_level(starts, goals);
 
-    for (size_t i = 0; i < starts.size(); i++)
-    {
-        cout <<"Cost: "<<Solution[i].first<< "  Path: ";
-        for (const auto& p : Solution[i].second) {
-            cout << "(" << p[0] << ", " << p[1] << ", " << p[2] << ") ";
+    std::cout << "Final Solution Paths and Costs:" << std::endl;
+    for (size_t i = 0; i < starts.size(); i++) {
+        std::cout << "Agent " << i << " - Cost: " << solution[i].first << " Path: ";
+        for (const auto& step : solution[i].second) {
+            std::cout << "(" << step[0] << ", " << step[1] << ", " << step[2] << ") ";
         }
-        cout << endl;
+        std::cout << std::endl;
     }
 
-    vector<vector<int>> Conflicts = cbs.findConflicts(Solution);
+    int totalCost = cbsAlgorithm.findTotalCost(solution);
+    std::cout << "Total Cost: " << totalCost << std::endl;
 
-    cout <<"Conflicts: ";
-    for (const auto& p : Conflicts) {
-        cout << "(" << p[0] << ", " << p[1] << ", " << p[2] <<", "<< p[3]<< ", "<< p[4]<<") ";
+    vector<vector<int>> conflicts = cbsAlgorithm.findConflicts(solution);
+    std::cout << "Conflicts: ";
+    for (const auto& conflict : conflicts) {
+        std::cout << "(" << conflict[0] << ", " << conflict[1] << ", " << conflict[2] << ", " << conflict[3] << ", " << conflict[4] << ") ";
     }
-    cout << endl;
+    std::cout << std::endl;
 
-    vector<Constraint> Constraints = cbs.generateConstraints(Conflicts);
-
-    cout <<"Constraints: ";
-    for (const auto& p : Constraints) {
-        cout << "(" << p.ID << ", " << p.x << ", " << p.y <<", "<< p.time<<") ";
+    vector<Constraint> newConstraints = cbsAlgorithm.generateConstraints(conflicts);
+    std::cout << "New Constraints: ";
+    for (const auto& constraint : newConstraints) {
+        std::cout << "(" << constraint.ID << ", " << constraint.x << ", " << constraint.y << ", " << constraint.time << ") ";
     }
-    cout << endl;
+    std::cout << std::endl;
 
     return 0;
 }
