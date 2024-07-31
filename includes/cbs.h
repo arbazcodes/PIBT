@@ -8,7 +8,7 @@
 
 using namespace std;
 
-typedef pair<int, vector<vector<int>>> CostPath;
+typedef vector<vector<int>> CostPath;
 
 struct CBSNode {
     vector<CostPath> solution;

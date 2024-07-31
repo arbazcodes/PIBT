@@ -14,6 +14,10 @@ struct Constraint {
     int ID, x, y, time;   
 };
 
+enum directions{
+    UP, DOwN, LEFT, RIGHT
+};
+
 vector<vector<int>> a_star_algorithm(const Pair& start, const Pair& goal, const vector<Constraint>& constraints, const vector<vector<int>>& grid);
 
 #endif

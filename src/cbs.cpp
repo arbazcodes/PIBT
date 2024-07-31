@@ -20,7 +20,7 @@ vector<CostPath> cbs::low_level(vector<Pair> sources, vector<Pair> destinatoins,
             constraintByID[constraint.ID].push_back(constraint);
         }
         vector<vector<int>> path = a_star_algorithm(sources[i], destinatoins[i], constraintByID[i], Grid);
-        Solution.push_back(make_pair(path.size(), path));
+        Solution.push_back(path);
     }
 
     return Solution;
@@ -31,9 +31,8 @@ int cbs::findTotalCost(vector<CostPath> Solution)
     int total_cost;
 
     for (const auto& path : Solution) {
-            total_cost += path.first;
+            total_cost += path.size();
     }
-
     return total_cost;
 }
 
@@ -41,10 +40,10 @@ vector<vector<int>> cbs::findConflicts(vector<CostPath> Solution) {
     vector<vector<int>> Conflicts;
 
     for (int i = 0; i < Solution.size(); ++i) {
-        const vector<vector<int>>& path_1 = Solution[i].second;
+        const vector<vector<int>>& path_1 = Solution[i];
         
         for (int j = i + 1; j < Solution.size(); ++j) {
-            const vector<vector<int>>& path_2 = Solution[j].second;
+            const vector<vector<int>>& path_2 = Solution[j];
 
             for (int t = 0; t < path_1.size() && t < path_2.size(); ++t) {
                 const auto& step_1 = path_1[t];

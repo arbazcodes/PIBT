@@ -19,8 +19,8 @@ int main() {
 
     std::cout << "Final Solution Paths and Costs:" << std::endl;
     for (size_t i = 0; i < starts.size(); i++) {
-        std::cout << "Agent " << i << " - Cost: " << solution[i].first << " Path: ";
-        for (const auto& step : solution[i].second) {
+        std::cout << "Agent " << i << " - Cost: " << solution[i].size() << " Path: ";
+        for (const auto& step : solution[i]) {
             std::cout << "(" << step[0] << ", " << step[1] << ", " << step[2] << ") ";
         }
         std::cout << std::endl;
