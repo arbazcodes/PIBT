@@ -2,20 +2,23 @@
 #include "cbs.h"
 
 int main() {
-    vector<Pair> starts = {{0, 0}, {2, 0}, {2, 2}};
-    vector<Pair> goals = {{2, 0}, {1, 0}, {0, 0}};
-    
-    vector<Constraint> constraints = {};
-    
-    vector<vector<int>> grid = {
-        {1, 1, 1},
-        {1, 1, 1},
-        {1, 1, 1}
+    std::vector<Pair> starts = {{0, 0}, {0, 2}, {0, 1}, {1, 1}, {1, 0}, {2, 1}, /*{2, 0},*/ {2, 2}
+    };
+    std::vector<Pair> goals = {{0, 2}, {0, 0}, {1, 1}, {1, 0}, {2, 1}, {1, 2}, /*{0, 1},*/ {2, 0}
     };
 
-    cbs cbsAlgorithm(grid);
+    // Define constraints (empty in this case)
+    std::vector<Constraint> constraints = {};
 
-    vector<CostPath> solution = cbsAlgorithm.high_level(starts, goals);
+    // Define the grid where agents operate
+    std::vector<std::vector<int>> grid = {
+        {1, 1, 1},
+        {1, 1, 1},
+        {1, 1, 1}};
+
+    Cbs cbsAlgorithm(grid);
+
+    vector<CostPath> solution = cbsAlgorithm.HighLevel(starts, goals);
 
     std::cout << "Final Solution Paths and Costs:" << std::endl;
     for (size_t i = 0; i < starts.size(); i++) {
@@ -26,20 +29,20 @@ int main() {
         std::cout << std::endl;
     }
 
-    int totalCost = cbsAlgorithm.findTotalCost(solution);
+    int totalCost = cbsAlgorithm.FindTotalCost(solution);
     std::cout << "Total Cost: " << totalCost << std::endl;
 
-    vector<vector<int>> conflicts = cbsAlgorithm.findConflicts(solution);
+    vector<vector<int>> conflicts = cbsAlgorithm.FindConflicts(solution);
     std::cout << "Conflicts: ";
     for (const auto& conflict : conflicts) {
         std::cout << "(" << conflict[0] << ", " << conflict[1] << ", " << conflict[2] << ", " << conflict[3] << ", " << conflict[4] << ") ";
     }
     std::cout << std::endl;
 
-    vector<Constraint> newConstraints = cbsAlgorithm.generateConstraints(conflicts);
+    vector<Constraint> newConstraints = cbsAlgorithm.GenerateConstraints(conflicts);
     std::cout << "New Constraints: ";
     for (const auto& constraint : newConstraints) {
-        std::cout << "(" << constraint.ID << ", " << constraint.x << ", " << constraint.y << ", " << constraint.time << ") ";
+        std::cout << "(" << constraint.id << ", " << constraint.x << ", " << constraint.y << ", " << constraint.time << ") ";
     }
     std::cout << std::endl;
 

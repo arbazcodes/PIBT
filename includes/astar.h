@@ -11,7 +11,7 @@ using namespace std;
 typedef pair<int, int> Pair;
 
 struct Constraint {
-    int ID, x, y, time;   
+    int id, x, y, time;   
 };
 
 enum directions{
