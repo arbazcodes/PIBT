@@ -2,22 +2,48 @@
 #define ASTAR_H
 
 #include <vector>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
+#include <optional>
 
-using namespace std;
+typedef std::pair<int, int> Pair;
 
-typedef pair<int, int> Pair;
-
-struct Constraint {
-    int id, x, y, time;   
+enum Direction
+{
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
 };
 
-enum directions{
-    UP, DOwN, LEFT, RIGHT
+struct Constraint
+{
+    int id;
+    int x;
+    int y;
+    int time;
+    std::optional<int> x2; // Optional second position for edge constraints
+    std::optional<int> y2; // Optional second position for edge constraints
+
+    // For edge constraints
+    bool IsEdgeConstraint() const { return x2.has_value() && y2.has_value(); }
 };
 
-vector<vector<int>> a_star_algorithm(const Pair& start, const Pair& goal, const vector<Constraint>& constraints, const vector<vector<int>>& grid);
+struct State
+{
+    Pair position;
+    Direction direction;
+    int time_step;
 
-#endif
+    bool operator<(const State &other) const
+    {
+        return std::tie(position, direction, time_step) < std::tie(other.position, other.direction, other.time_step);
+    }
+};
+
+std::vector<std::vector<int>> AStarAlgorithm(
+    const Pair &start,
+    const Pair &goal,
+    const std::vector<Constraint> &constraints,
+    const std::vector<std::vector<int>> &grid);
+
+#endif // ASTAR_H

@@ -7,10 +7,8 @@
 #include "astar.h"
 #include <queue>
 
-// Alias for cost path
 using CostPath = std::vector<std::vector<int>>;
 
-// CBSNode structure definition
 struct CbsNode
 {
     std::vector<CostPath> solution;
@@ -23,14 +21,11 @@ struct CbsNode
     }
 };
 
-// CBS class definition
 class Cbs
 {
 public:
-    // Constructor
     explicit Cbs(const std::vector<std::vector<int>> &grid);
 
-    // Member functions
     int FindTotalCost(const std::vector<CostPath> &solution) const;
     std::vector<std::vector<int>> FindConflicts(const std::vector<CostPath> &solution) const;
     std::vector<Constraint> GenerateConstraints(const std::vector<std::vector<int>> &conflicts) const;
@@ -46,4 +41,4 @@ private:
     std::vector<std::vector<int>> grid;
 };
 
-#endif // CBS_H
+#endif 

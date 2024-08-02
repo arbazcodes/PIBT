@@ -2,99 +2,148 @@
 #include <queue>
 #include <cmath>
 #include <algorithm>
+#include <map>
+#include <set>
 
-namespace std {
-    // Hash function for pair of Pair and int
-    template <>
-    struct hash<pair<Pair, int>> {
-        size_t operator()(const pair<Pair, int>& p) const {
-            return hash<int>()(p.first.first) ^ hash<int>()(p.first.second) ^ hash<int>()(p.second);
-        }
-    };
-
-    // Hash function for Pair
-    template <>
-    struct hash<Pair> {
-        size_t operator()(const Pair& p) const {
-            return hash<int>()(p.first) ^ hash<int>()(p.second);
-        }
-    };
+// Function to calculate Manhattan distance
+int ManhattanDistance(const Pair &a, const Pair &b)
+{
+    return std::abs(a.first - b.first) + std::abs(a.second - b.second);
 }
 
-int manhattan_distance(const Pair& a, const Pair& b) {
-    return abs(a.first - b.first) + abs(a.second - b.second);
+// Function to calculate the cost of rotation between two directions
+int RotationCost(Direction from, Direction to)
+{
+    return (from == to) ? 0 : 1;
 }
 
-vector<vector<int>> a_star_algorithm(const Pair& start, const Pair& goal, const vector<Constraint>& constraints, const vector<vector<int>>& grid) {
+std::vector<std::vector<int>> AStarAlgorithm(
+    const Pair &start,
+    const Pair &goal,
+    const std::vector<Constraint> &constraints,
+    const std::vector<std::vector<int>> &grid)
+{
     int rows = grid.size();
-    int cols = rows > 0 ? grid[0].size() : 0;
+    int cols = (rows > 0) ? grid[0].size() : 0;
 
-    // Directions for moving in the grid (right, down, left, up)
-    vector<Pair> directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+    std::vector<Pair> direction_vectors = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+    std::vector<Direction> directions = {RIGHT, DOWN, LEFT, UP};
 
-    // Priority queue for A* search
-    priority_queue<tuple<int, Pair, int>, vector<tuple<int, Pair, int>>, greater<tuple<int, Pair, int>>> open_list;
-    open_list.push({0, start, 0});  // (priority, (x, y), time_step)
+    // Priority queue to store open list
+    std::priority_queue<
+        std::tuple<int, State>,
+        std::vector<std::tuple<int, State>>,
+        std::greater<std::tuple<int, State>>>
+        open_list;
+    open_list.push({0, {start, RIGHT, 0}}); // (priority, (position, direction, time_step))
 
-    // Distance cost map
-    unordered_map<Pair, int, hash<Pair>> g_costs;
-    g_costs[start] = 0;
+    std::map<State, int> g_costs;
+    g_costs[{start, RIGHT, 0}] = 0;
 
-    // Map for storing the path
-    unordered_map<pair<Pair, int>, pair<Pair, int>, hash<pair<Pair, int>>> came_from;
+    std::map<State, State> came_from;
 
-    // Set of constraints for quick lookup
-    unordered_map<int, unordered_set<Pair>> constraint_map;
-    for (const auto& c : constraints) {
-        constraint_map[c.time].insert({c.x, c.y});
+    std::map<int, std::set<Pair>> vertex_constraint_map;
+    std::map<int, std::set<std::pair<Pair, Pair>>> edge_constraint_map;
+
+    for (const auto &constraint : constraints)
+    {
+        if (constraint.IsEdgeConstraint())
+        {
+            edge_constraint_map[constraint.time].emplace(
+                std::make_pair(constraint.x, constraint.y),
+                std::make_pair(constraint.x2.value(), constraint.y2.value()));
+        }
+        else
+        {
+            vertex_constraint_map[constraint.time].insert({constraint.x, constraint.y});
+        }
     }
 
-    while (!open_list.empty()) {
-        auto [_, current, time_step] = open_list.top();
+    while (!open_list.empty())
+    {
+        auto [_, current] = open_list.top();
         open_list.pop();
 
-        if (current == goal) {
-            vector<vector<int>> path;
-            while (came_from.find({current, time_step}) != came_from.end()) {
-                path.push_back({current.first, current.second, time_step});
-                auto [prev, prev_time_step] = came_from[{current, time_step}];
-                current = prev;
-                time_step = prev_time_step;
+        if (current.position == goal)
+        {
+            std::vector<std::vector<int>> path;
+            while (came_from.find(current) != came_from.end())
+            {
+                path.push_back({current.position.first,
+                                current.position.second,
+                                static_cast<int>(current.direction),
+                                current.time_step});
+                current = came_from[current];
             }
-            path.push_back({start.first, start.second, 0});
-            reverse(path.begin(), path.end());
+            path.push_back({start.first, start.second, static_cast<int>(RIGHT), 0});
+            std::reverse(path.begin(), path.end());
             return path;
         }
 
         // Explore neighbors
-        for (const auto& direction : directions) {
-            Pair next_cell = {current.first + direction.first, current.second + direction.second};
-            int next_time_step = time_step + 1;
+        for (size_t i = 0; i < directions.size(); ++i)
+        {
+            Direction new_direction = static_cast<Direction>(i);
+            Pair direction_vector = direction_vectors[i];
+            Pair next_cell = {
+                current.position.first + direction_vector.first,
+                current.position.second + direction_vector.second};
+            int next_time_step = current.time_step + 1;
 
-            // Check if next cell is within bounds and not blocked
+            // Check if the next cell is within bounds and not blocked
             if (next_cell.first < 0 || next_cell.first >= rows ||
                 next_cell.second < 0 || next_cell.second >= cols ||
-                grid[next_cell.first][next_cell.second] != 1) {
+                grid[next_cell.first][next_cell.second] != 1)
+            {
                 continue;
             }
 
-            // Check constraints
-            if (constraint_map.find(next_time_step) != constraint_map.end() &&
-                constraint_map[next_time_step].find(next_cell) != constraint_map[next_time_step].end()) {
+            // Check vertex constraints
+            if (vertex_constraint_map.find(next_time_step) != vertex_constraint_map.end() &&
+                vertex_constraint_map[next_time_step].find(next_cell) != vertex_constraint_map[next_time_step].end())
+            {
                 continue;
             }
 
-            // Calculate the cost
-            int new_g_cost = g_costs[current] + 1; // Assuming each move has cost 1
+            // Check edge constraints
+            bool edge_conflict = false;
+            if (edge_constraint_map.find(next_time_step) != edge_constraint_map.end())
+            {
+                for (const auto &edge_constraint : edge_constraint_map[next_time_step])
+                {
+                    const auto &start_pos = edge_constraint.first;
+                    const auto &end_pos = edge_constraint.second;
 
-            if (g_costs.find(next_cell) == g_costs.end() || new_g_cost < g_costs[next_cell]) {
-                g_costs[next_cell] = new_g_cost;
-                int f_cost = new_g_cost + manhattan_distance(next_cell, goal);
-                open_list.push({f_cost, next_cell, next_time_step});
-                came_from[{next_cell, next_time_step}] = {current, time_step};
+                    if ((current.position == start_pos && next_cell == end_pos) ||
+                        (current.position == end_pos && next_cell == start_pos))
+                    {
+                        edge_conflict = true;
+                        break;
+                    }
+                }
+            }
+            if (edge_conflict)
+            {
+                continue;
+            }
+
+            // Determine the cost to transition to the new state
+            int rotation_cost_value = RotationCost(current.direction, new_direction);
+            int move_cost = 1;
+            int final_g_cost = g_costs[current] + rotation_cost_value + move_cost;
+            State final_state = {next_cell, new_direction, next_time_step};
+
+            // Check if the new state is better than previously known states
+            if (g_costs.find(final_state) == g_costs.end() ||
+                final_g_cost < g_costs[final_state])
+            {
+                g_costs[final_state] = final_g_cost;
+                int f_cost = final_g_cost + ManhattanDistance(final_state.position, goal);
+                open_list.push({f_cost, final_state});
+                came_from[final_state] = current;
             }
         }
     }
 
-    return {}; // If no path is found
+    return {};
 }

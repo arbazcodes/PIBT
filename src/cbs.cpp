@@ -24,7 +24,7 @@ std::optional<std::vector<CostPath>> Cbs::LowLevel(
 
     for (int i = 0; i < sources.size(); ++i)
     {
-        auto path = a_star_algorithm(sources[i], destinations[i], constraint_by_id[i], grid);
+        auto path = AStarAlgorithm(sources[i], destinations[i], constraint_by_id[i], grid);
         if (path.empty())
         {
             std::cout << "No path found for agent " << i << " with constraints." << std::endl;
@@ -32,6 +32,29 @@ std::optional<std::vector<CostPath>> Cbs::LowLevel(
         }
         solution.push_back(path);
     }
+
+    // // Find the maximum path length
+    // int max_length = 0;
+    // for (const auto &path : solution)
+    // {
+    //     if (path.size() > max_length)
+    //     {
+    //         max_length = path.size();
+    //     }
+    // }
+
+    // // Extend all paths to match the maximum length
+    // for (auto &path : solution)
+    // {
+    //     if (path.size() < max_length)
+    //     {
+    //         auto last_step = path.back();
+    //         for (int t = path.size(); t < max_length; ++t)
+    //         {
+    //             path.push_back({last_step[0], last_step[1], last_step[2], static_cast<int>(t)});
+    //         }
+    //     }
+    // }
 
     return solution;
 }
@@ -52,6 +75,7 @@ int Cbs::FindTotalCost(const std::vector<CostPath> &solution) const
 std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &solution) const
 {
     std::vector<std::vector<int>> Conflicts;
+    std::vector<std::vector<int>> EdgeConflicts;
 
     for (int i = 0; i < solution.size(); ++i)
     {
@@ -61,12 +85,13 @@ std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &so
         {
             const std::vector<std::vector<int>> &path_2 = solution[j];
 
+            // Check for vertex conflicts
             for (int t = 0; t < path_1.size() && t < path_2.size(); ++t)
             {
                 const auto &step_1 = path_1[t];
                 const auto &step_2 = path_2[t];
 
-                if (step_1.size() == 3 && step_2.size() == 3)
+                if (step_1.size() == 4 && step_2.size() == 4)
                 {
                     int x1 = step_1[0];
                     int y1 = step_1[1];
@@ -79,9 +104,39 @@ std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &so
                     }
                 }
             }
+
+            // Check for edge conflicts
+            for (int t = 0; t < path_1.size() - 1 && t < path_2.size() - 1; ++t)
+            {
+                const auto &step_1_a = path_1[t];
+                const auto &step_1_b = path_1[t + 1];
+                const auto &step_2_a = path_2[t];
+                const auto &step_2_b = path_2[t + 1];
+
+                if (step_1_a.size() == 4 && step_1_b.size() == 4 &&
+                    step_2_a.size() == 4 && step_2_b.size() == 4)
+                {
+                    int x1_a = step_1_a[0];
+                    int y1_a = step_1_a[1];
+                    int x1_b = step_1_b[0];
+                    int y1_b = step_1_b[1];
+                    int x2_a = step_2_a[0];
+                    int y2_a = step_2_a[1];
+                    int x2_b = step_2_b[0];
+                    int y2_b = step_2_b[1];
+
+                    if ((x1_a == x2_a && y1_a == y2_a && x1_b == x2_b && y1_b == y2_b) ||
+                        (x1_a == x2_b && y1_a == y2_b && x1_b == x2_a && y1_b == y2_a))
+                    {
+                        EdgeConflicts.push_back({i, j, x1_a, y1_a, x1_b, y1_b, t});
+                    }
+                }
+            }
         }
     }
 
+    // Combine vertex and edge conflicts
+    Conflicts.insert(Conflicts.end(), EdgeConflicts.begin(), EdgeConflicts.end());
     return Conflicts;
 }
 
@@ -91,8 +146,16 @@ std::vector<Constraint> Cbs::GenerateConstraints(const std::vector<std::vector<i
 
     for (const auto &p : conflicts)
     {
-        Constraints.push_back({p[0], p[2], p[3], p[4]});
-        Constraints.push_back({p[1], p[2], p[3], p[4]});
+        if (p.size() == 5) // Vertex conflict
+        {
+            Constraints.push_back({p[0], p[2], p[3], p[4]});
+            Constraints.push_back({p[1], p[2], p[3], p[4]});
+        }
+        else if (p.size() == 7) // Edge conflict
+        {
+            Constraints.push_back({p[0], p[2], p[3], p[4], p[5], p[6]});
+            Constraints.push_back({p[1], p[2], p[3], p[4], p[5], p[6]});
+        }
     }
 
     return Constraints;
@@ -136,22 +199,25 @@ std::vector<CostPath> Cbs::HighLevel(const std::vector<Pair> &sources, const std
             auto new_constraints = GenerateConstraints({conflict});
 
             auto new_solution1 = LowLevel(sources, destinations, child1.constraints);
-            if (new_solution1.has_value())
+            if (!new_solution1.has_value())
             {
-                child1.constraints.push_back(new_constraints[0]);
-                child1.solution = *new_solution1;
-                child1.cost = FindTotalCost(child1.solution);
-                open.push(child1);
+               continue; 
             }
 
+            child1.constraints.push_back(new_constraints[0]);
+            child1.solution = *new_solution1;
+            child1.cost = FindTotalCost(child1.solution);
+            open.push(child1);
+
             auto new_solution2 = LowLevel(sources, destinations, child2.constraints);
-            if (new_solution2.has_value())
+            if (!new_solution2.has_value())
             {
-                child2.constraints.push_back(new_constraints[1]);
-                child2.solution = *new_solution2;
-                child2.cost = FindTotalCost(child2.solution);
-                open.push(child2);
+                continue;
             }
+            child2.constraints.push_back(new_constraints[1]);
+            child2.solution = *new_solution2;
+            child2.cost = FindTotalCost(child2.solution);
+            open.push(child2);
         }
     }
 
