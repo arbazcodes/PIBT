@@ -9,10 +9,11 @@ typedef std::pair<int, int> Pair;
 
 enum Direction
 {
-    UP,
+    RIGHT,
     DOWN,
     LEFT,
-    RIGHT
+    UP,
+    STAY
 };
 
 struct Constraint
@@ -21,11 +22,6 @@ struct Constraint
     int x;
     int y;
     int time;
-    std::optional<int> x2; // Optional second position for edge constraints
-    std::optional<int> y2; // Optional second position for edge constraints
-
-    // For edge constraints
-    bool IsEdgeConstraint() const { return x2.has_value() && y2.has_value(); }
 };
 
 struct State
@@ -46,4 +42,4 @@ std::vector<std::vector<int>> AStarAlgorithm(
     const std::vector<Constraint> &constraints,
     const std::vector<std::vector<int>> &grid);
 
-#endif // ASTAR_H
+#endif
