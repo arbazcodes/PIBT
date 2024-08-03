@@ -63,10 +63,10 @@ void EnsureUniqueStartAndGoal(std::vector<Pair> &starts, std::vector<Pair> &goal
 
 int main()
 {
-    const int num_agents = 6; // Number of agents
+    const int num_agents = 4; // Number of agents
     const int grid_rows = 3;
     const int grid_cols = 3;
-    const int num_iterations = 100; // Number of iterations to run
+    const int num_iterations = 500; // Number of iterations to run
 
     // Initialize the grid
     std::vector<std::vector<int>> grid(grid_rows, std::vector<int>(grid_cols, 1));

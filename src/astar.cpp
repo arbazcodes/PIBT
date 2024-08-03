@@ -43,17 +43,11 @@ std::vector<std::vector<int>> AStarAlgorithm(
 
     std::map<State, State> came_from;
 
-    std::map<int, std::set<Pair>> vertex_constraint_map;
-    std::map<int, std::set<std::pair<Pair, Pair>>> edge_constraint_map;
+    std::map<int, std::set<Pair>> constraint_map;
 
     for (const auto &constraint : constraints)
     {
-        vertex_constraint_map[constraint.time].insert({constraint.x, constraint.y});
-        // Edge constraint: store as a pair of positions
-        if (constraint.id == -1) // Assuming an ID of -1 signifies edge constraints
-        {
-            edge_constraint_map[constraint.time].insert({{constraint.x, constraint.y}, {constraint.x + direction_vectors[RIGHT].first, constraint.y + direction_vectors[RIGHT].second}});
-        }
+        constraint_map[constraint.time].insert({constraint.x, constraint.y});
     }
 
     while (!open_list.empty())
@@ -86,27 +80,7 @@ std::vector<std::vector<int>> AStarAlgorithm(
                 continue;
             }
 
-            if (vertex_constraint_map.find(next_time_step) != vertex_constraint_map.end() && vertex_constraint_map[next_time_step].find(next_cell) != vertex_constraint_map[next_time_step].end())
-            {
-                continue;
-            }
-
-            bool edge_conflict = false;
-            if (edge_constraint_map.find(next_time_step) != edge_constraint_map.end())
-            {
-                auto edge_constraints = edge_constraint_map[next_time_step];
-                for (const auto &edge : edge_constraints)
-                {
-                    if ((edge.first == current.position && edge.second == next_cell) ||
-                        (edge.second == current.position && edge.first == next_cell))
-                    {
-                        edge_conflict = true;
-                        break;
-                    }
-                }
-            }
-
-            if (edge_conflict)
+            if (constraint_map.find(next_time_step) != constraint_map.end() && constraint_map[next_time_step].find(next_cell) != constraint_map[next_time_step].end())
             {
                 continue;
             }

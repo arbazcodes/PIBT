@@ -41,6 +41,7 @@ private:
     std::vector<std::vector<int>> grid;
     // Helper functions
     std::vector<std::vector<int>> FindConflictsEdge(const std::vector<CostPath> &solution) const;
+    std::vector<std::vector<int>> FindConflictsVertex(const std::vector<CostPath> &solution) const;
 };
 
 #endif

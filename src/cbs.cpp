@@ -27,7 +27,7 @@ std::optional<std::vector<CostPath>> Cbs::LowLevel(
 
         if (path.empty())
         {
-            std::cout << "No path found for agent " << i << " with constraints." << std::endl;
+            //std::cout << "No path found for agent " << i << " with constraints." << std::endl;
             return std::nullopt;
         }
         solution.push_back(path);
@@ -51,9 +51,46 @@ int Cbs::FindTotalCost(const std::vector<CostPath> &solution) const
 
 std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &solution) const
 {
-    std::vector<std::vector<int>> Conflicts = FindConflictsEdge(solution);
+    std::vector<std::vector<int>> conflicts;
 
-    return Conflicts;
+    // Check for vertex conflicts
+    auto vertex_conflicts = FindConflictsVertex(solution);
+    conflicts.insert(conflicts.end(), vertex_conflicts.begin(), vertex_conflicts.end());
+
+    // Check for edge conflicts
+    auto edge_conflicts = FindConflictsEdge(solution);
+    conflicts.insert(conflicts.end(), edge_conflicts.begin(), edge_conflicts.end());
+
+    return conflicts;
+}
+
+std::vector<std::vector<int>> Cbs::FindConflictsVertex(const std::vector<CostPath> &solution) const
+{
+    std::vector<std::vector<int>> vertex_conflicts;
+
+    std::map<Pair, std::set<int>> cell_occupancy; // Mapping from cell to set of agents occupying it
+
+    for (int i = 0; i < solution.size(); ++i)
+    {
+        const auto &path = solution[i];
+
+        for (int t = 0; t < path.size(); ++t)
+        {
+            const auto &step = path[t];
+            Pair cell = {step[0], step[1]};
+
+            if (cell_occupancy[cell].find(i) != cell_occupancy[cell].end())
+            {
+                vertex_conflicts.push_back({i, i, step[0], step[1], t});
+            }
+            else
+            {
+                cell_occupancy[cell].insert(i);
+            }
+        }
+    }
+
+    return vertex_conflicts;
 }
 
 std::vector<std::vector<int>> Cbs::FindConflictsEdge(const std::vector<CostPath> &solution) const
@@ -81,8 +118,8 @@ std::vector<std::vector<int>> Cbs::FindConflictsEdge(const std::vector<CostPath>
                     int x2 = step_2[0];
                     int y2 = step_2[1];
 
-                    if ((x1 == x2 && y1 == y2) ||                         // Vertex conflict
-                        (x1 == x2 && y1 == y2 && step_1[2] != step_2[2])) // Edge conflict
+                    if ((x1 == x2 && y1 == y2) ||               
+                        (x1 == x2 && y1 == y2 && step_1[2] != step_2[2]))
                     {
                         Conflicts.push_back({i, j, x1, y1, t});
                     }
@@ -100,8 +137,10 @@ std::vector<Constraint> Cbs::GenerateConstraints(const std::vector<std::vector<i
 
     for (const auto &p : conflicts)
     {
-        Constraints.push_back({p[0], p[2], p[3], p[4]});
-        Constraints.push_back({p[1], p[2], p[3], p[4]});
+        {
+            Constraints.push_back({p[0], p[2], p[3], p[4]});
+            Constraints.push_back({p[1], p[2], p[3], p[4]});
+        }
     }
 
     return Constraints;
@@ -157,7 +196,6 @@ std::vector<CostPath> Cbs::HighLevel(const std::vector<Pair> &sources, const std
             open.push(child);
         }
     }
-
     std::cout << "No feasible solution found." << std::endl;
     return {};
 }
