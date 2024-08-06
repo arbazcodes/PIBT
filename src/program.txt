@@ -12,13 +12,16 @@ using Pair = std::pair<int, int>;
 // Function to generate unique random positions within grid bounds
 std::vector<Pair> GenerateUniqueRandomPositions(int num_positions, int grid_rows, int grid_cols, std::mt19937 &rng)
 {
-    if (num_positions > grid_rows * grid_cols) {
+    if (num_positions > grid_rows * grid_cols)
+    {
         throw std::invalid_argument("Number of positions requested exceeds the number of available grid cells.");
     }
 
     std::vector<Pair> all_positions;
-    for (int row = 0; row < grid_rows; ++row) {
-        for (int col = 0; col < grid_cols; ++col) {
+    for (int row = 0; row < grid_rows; ++row)
+    {
+        for (int col = 0; col < grid_cols; ++col)
+        {
             all_positions.emplace_back(row, col);
         }
     }
@@ -28,37 +31,54 @@ std::vector<Pair> GenerateUniqueRandomPositions(int num_positions, int grid_rows
     return all_positions;
 }
 
-// Function to ensure start and goal positions are different
-void EnsureUniqueStartAndGoal(std::vector<Pair> &starts, std::vector<Pair> &goals, std::mt19937 &rng)
+// Function to ensure unique start and goal positions
+void EnsureUniqueStartAndGoal(std::vector<Pair> &starts, std::vector<Pair> &goals, std::mt19937 &rng, int grid_rows, int grid_cols)
 {
-    std::set<Pair> start_set(starts.begin(), starts.end());
-    std::set<Pair> goal_set(goals.begin(), goals.end());
+    std::set<Pair> start_set;
+    std::set<Pair> goal_set;
 
-    while (start_set.size() < starts.size() || goal_set.size() < goals.size()) {
-        if (start_set.size() < starts.size()) {
-            starts = GenerateUniqueRandomPositions(starts.size(), 5, 5, rng);
-            start_set = std::set<Pair>(starts.begin(), starts.end());
-        }
-        if (goal_set.size() < goals.size()) {
-            goals = GenerateUniqueRandomPositions(goals.size(), 5, 5, rng);
-            goal_set = std::set<Pair>(goals.begin(), goals.end());
+    // Generate unique starts
+    while (start_set.size() < starts.size())
+    {
+        auto new_starts = GenerateUniqueRandomPositions(starts.size(), grid_rows, grid_cols, rng);
+        start_set.insert(new_starts.begin(), new_starts.end());
+    }
+    starts.assign(start_set.begin(), start_set.end());
+
+    // Generate unique goals
+    while (goal_set.size() < goals.size())
+    {
+        auto new_goals = GenerateUniqueRandomPositions(goals.size(), grid_rows, grid_cols, rng);
+        goal_set.insert(new_goals.begin(), new_goals.end());
+    }
+    goals.assign(goal_set.begin(), goal_set.end());
+
+    // Ensure no start position is the same as any goal position
+    std::set<Pair> all_positions = start_set;
+    all_positions.insert(goal_set.begin(), goal_set.end());
+
+    // Regenerate goals if there are overlaps with start positions
+    while (goal_set.size() < goals.size())
+    {
+        auto new_goals = GenerateUniqueRandomPositions(goals.size(), grid_rows, grid_cols, rng);
+        for (const auto &goal : new_goals)
+        {
+            if (all_positions.find(goal) == all_positions.end())
+            {
+                goal_set.insert(goal);
+                all_positions.insert(goal);
+            }
         }
     }
-
-    for (size_t i = 0; i < starts.size(); ++i) {
-        while (start_set.find(goals[i]) != start_set.end()) {
-            // Generate a new goal position if it overlaps with a start position
-            goals[i] = GenerateUniqueRandomPositions(1, 5, 5, rng)[0];
-        }
-    }
+    goals.assign(goal_set.begin(), goal_set.end());
 }
 
 int main()
 {
-    const int num_agents = 4; // Number of agents
-    const int grid_rows = 5;
-    const int grid_cols = 5;
-    const int num_iterations = 10; // Number of iterations to run
+    const int num_agents = 3; // Number of agents
+    const int grid_rows = 3;
+    const int grid_cols = 3;
+    const int num_iterations = 100; // Number of iterations to run
 
     // Initialize the grid
     std::vector<std::vector<int>> grid(grid_rows, std::vector<int>(grid_cols, 1));
@@ -74,13 +94,18 @@ int main()
         auto goals = GenerateUniqueRandomPositions(num_agents, grid_rows, grid_cols, rng);
 
         // Ensure that starts and goals are different
-        EnsureUniqueStartAndGoal(starts, goals, rng);
+        EnsureUniqueStartAndGoal(starts, goals, rng, grid_rows, grid_cols);
 
         // Define constraints (empty in this case)
         std::vector<Constraint> constraints = {};
 
         // Initialize the CBS algorithm with the grid
         Cbs cbs_algorithm(grid);
+
+        for (int i = 0; i < starts.size(); i++)
+        {
+            std::cout << "Start: (" << starts[i].first << ", " << starts[i].second << ")---" << "Goal: (" << goals[i].first << ", " << goals[i].second << ")" << std::endl;
+        }
 
         // Compute the solution using the high-level CBS algorithm
         std::vector<CostPath> solution = cbs_algorithm.HighLevel(starts, goals);

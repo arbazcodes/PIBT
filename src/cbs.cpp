@@ -27,6 +27,7 @@ std::optional<std::vector<CostPath>> Cbs::LowLevel(
 
         if (path.empty())
         {
+            std::cout<<"No solution found for Agent "<<i<<"with constraint."<<std::endl;
             return std::nullopt;
         }
         solution.push_back(path);
@@ -118,6 +119,43 @@ std::vector<std::vector<int>> Cbs::FindConflictsEdge(const std::vector<CostPath>
     return conflicts;
 }
 
+std::vector<std::vector<int>> Cbs::FindStoppingConflicts(const std::vector<CostPath> &solution) const
+{
+    std::vector<std::vector<int>> stopping_conflicts;
+
+    for (int i = 0; i < solution.size(); ++i)
+    {
+        const auto &path1 = solution[i];
+        if (path1.empty())
+            continue;
+
+        int goal_x = path1.back()[0];
+        int goal_y = path1.back()[1];
+
+        for (int j = 0; j < solution.size(); ++j)
+        {
+            if (i == j)
+                continue;
+
+            const auto &path2 = solution[j];
+            for (int t = path1.size(); t < path2.size(); ++t)
+            {
+                if (t >= path2.size())
+                    break;
+
+                const auto &pos2 = path2[t];
+
+                if (pos2.size() == 4 && pos2[0] == goal_x && pos2[1] == goal_y)
+                {
+                    stopping_conflicts.push_back({i, j, goal_x, goal_y, t, (int) path1.size() - 1});
+                }
+            }
+        }
+    }
+
+    return stopping_conflicts;
+}
+
 std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &solution) const
 {
     std::vector<std::vector<int>> conflicts;
@@ -130,6 +168,10 @@ std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &so
     auto edge_conflicts = FindConflictsEdge(solution);
     conflicts.insert(conflicts.end(), edge_conflicts.begin(), edge_conflicts.end());
 
+    // Check for stopping conflicts
+    auto stopping_conflicts = FindStoppingConflicts(solution);
+    conflicts.insert(conflicts.end(), stopping_conflicts.begin(), stopping_conflicts.end());
+    
     return conflicts;
 }
 
@@ -139,18 +181,20 @@ std::vector<Constraint> Cbs::GenerateConstraints(const std::vector<std::vector<i
 
     for (const auto &conflict : conflicts)
     {
-        for (const auto &p : conflicts)
+        if (conflict.size() == 5) // Vertex conflict
         {
-            if (p.size() == 5) // Vertex conflict
-            {
-                constraints.push_back({p[0], p[2], p[3], p[4]});
-                constraints.push_back({p[1], p[2], p[3], p[4]});
-            }
-            else if (p.size() == 7) // Edge conflict
-            {
-                constraints.push_back({p[0], p[4], p[5], p[6]});
-                constraints.push_back({p[1], p[2], p[3], p[6]});
-            }
+            constraints.push_back({conflict[0], conflict[2], conflict[3], conflict[4]});
+            constraints.push_back({conflict[1], conflict[2], conflict[3], conflict[4]});
+        }
+        else if (conflict.size() == 7) // Edge conflict
+        {
+            constraints.push_back({conflict[0], conflict[4], conflict[5], conflict[6]});
+            constraints.push_back({conflict[1], conflict[2], conflict[3], conflict[6]});
+        }
+        else if (conflict.size() == 6) // Stopping conflict
+        {
+            constraints.push_back({conflict[1], conflict[2], conflict[3], conflict[4]});
+            constraints.push_back({conflict[0], conflict[2], conflict[3], conflict[5]});
         }
     }
 
@@ -210,3 +254,48 @@ std::vector<CostPath> Cbs::HighLevel(const std::vector<Pair> &sources, const std
     std::cout << "No feasible solution found." << std::endl;
     return {};
 }
+
+// std::vector<CostPath> Cbs::HighLevel(const std::vector<Pair> &sources, const std::vector<Pair> &destinations) const
+// {
+
+//     auto solution = LowLevel(sources, destinations, {{0, 0, 1, 1}, {1, 0, 0, 1}});
+//     std::cout << "Final Solution Paths and Costs:" << std::endl;
+//     for (size_t i = 0; i < sources.size(); ++i)
+//     {
+//         std::cout << "Agent " << i << " - Cost: " << solution.value()[i].size() << " Path: ";
+//         int x = 0;
+//         for (const auto &step : solution.value()[i])
+//         {
+//             std::cout << "(" << step[0] << ", " << step[1] << ", " << step[2] << ", " << step[3] << ")";
+//             if (!(x == solution.value()[i].size() - 1))
+//                 std::cout << "--->";
+//             x++;
+//         }
+//         std::cout << std::endl;
+//     }
+
+//     // Calculate and output the total cost of the solution
+//     int total_cost = FindTotalCost(solution.value());
+//     std::cout << "Total Cost: " << total_cost << std::endl;
+
+//     // Find and output conflicts in the solution
+//     std::vector<std::vector<int>> conflicts = FindConflicts(solution.value());
+//     std::cout << "Conflicts: ";
+//     for (const auto &conflict : conflicts)
+//     {
+//         std::cout << "(" << conflict[0] << ", " << conflict[1] << ", " << conflict[2] << ", " << conflict[3] << ", " << conflict[4] << ", "<< conflict[5]<<") ";
+//     }
+//     std::cout << std::endl;
+
+//     // Generate and output new constraints based on conflicts
+//     std::vector<Constraint> new_constraints = GenerateConstraints(conflicts);
+//     std::cout << "New Constraints: ";
+//     for (const auto &constraint : new_constraints)
+//     {
+//         std::cout << "(" << constraint.id << ", " << constraint.x << ", " << constraint.y << ", " << constraint.time << ") ";
+//     }
+//     std::cout << std::endl;
+//     return {};
+// }
+
+// Start: (0, 0)---Goal: (1, 0) Start : (0, 2)-- - Goal : (2, 0)Start : (1, 2)-- - Goal : (2, 1)

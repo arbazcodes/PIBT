@@ -55,7 +55,7 @@ std::vector<std::vector<int>> AStarAlgorithm(
         auto [_, current] = open_list.top();
         open_list.pop();
 
-        if (current.position == goal)
+        if (current.position == goal && constraint_map.find(current.time_step) != constraint_map.end() && constraint_map[current.time_step].find(current.position) != constraint_map[current.time_step].end())
         {
             std::vector<std::vector<int>> path;
             while (came_from.find(current) != came_from.end())

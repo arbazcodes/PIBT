@@ -17,7 +17,7 @@ struct CbsNode
 
     bool operator<(const CbsNode &other) const
     {
-        return (cost > other.cost && constraints.size() > other.constraints.size());
+        return (cost > other.cost);
     }
 };
 
@@ -42,6 +42,7 @@ private:
     // Helper functions
     std::vector<std::vector<int>> FindConflictsEdge(const std::vector<CostPath> &solution) const;
     std::vector<std::vector<int>> FindConflictsVertex(const std::vector<CostPath> &solution) const;
+    std::vector<std::vector<int>> FindStoppingConflicts(const std::vector<CostPath> &solution) const;
 };
 
 #endif
