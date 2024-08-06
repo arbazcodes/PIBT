@@ -48,20 +48,6 @@ int Cbs::FindTotalCost(const std::vector<CostPath> &solution) const
     return total_cost;
 }
 
-std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &solution) const
-{
-    std::vector<std::vector<int>> conflicts;
-
-    // Check for vertex conflicts
-    auto vertex_conflicts = FindConflictsVertex(solution);
-    conflicts.insert(conflicts.end(), vertex_conflicts.begin(), vertex_conflicts.end());
-
-    // Check for edge conflicts
-    auto edge_conflicts = FindConflictsEdge(solution);
-    conflicts.insert(conflicts.end(), edge_conflicts.begin(), edge_conflicts.end());
-
-    return conflicts;
-}
 
 std::vector<std::vector<int>> Cbs::FindConflictsVertex(const std::vector<CostPath> &solution) const
 {
@@ -128,6 +114,21 @@ std::vector<std::vector<int>> Cbs::FindConflictsEdge(const std::vector<CostPath>
             }
         }
     }
+
+    return conflicts;
+}
+
+std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &solution) const
+{
+    std::vector<std::vector<int>> conflicts;
+
+    // Check for vertex conflicts
+    auto vertex_conflicts = FindConflictsVertex(solution);
+    conflicts.insert(conflicts.end(), vertex_conflicts.begin(), vertex_conflicts.end());
+
+    // Check for edge conflicts
+    auto edge_conflicts = FindConflictsEdge(solution);
+    conflicts.insert(conflicts.end(), edge_conflicts.begin(), edge_conflicts.end());
 
     return conflicts;
 }
