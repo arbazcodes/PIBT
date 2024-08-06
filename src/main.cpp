@@ -63,7 +63,7 @@ void EnsureUniqueStartAndGoal(std::vector<Pair> &starts, std::vector<Pair> &goal
 
 int main()
 {
-    const int num_agents = 4; // Number of agents
+    const int num_agents = 6; // Number of agents
     const int grid_rows = 3;
     const int grid_cols = 3;
     const int num_iterations = 100; // Number of iterations to run
@@ -92,9 +92,8 @@ int main()
 
         for (int i = 0; i < starts.size(); i++)
         {
-            std::cout << "Start: (" << starts[i].first << ", " << starts[i].second << ")---"<<"Goal: ("<<goals[i].first<<", "<<goals[i].second<<")"<<std::endl;
+            std::cout << "Start: (" << starts[i].first << ", " << starts[i].second << ")---" << "Goal: (" << goals[i].first << ", " << goals[i].second << ")" << std::endl;
         }
-        
 
         // Compute the solution using the high-level CBS algorithm
         std::vector<CostPath> solution = cbs_algorithm.HighLevel(starts, goals);
