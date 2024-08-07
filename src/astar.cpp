@@ -15,7 +15,13 @@ int ManhattanDistance(const Pair &a, const Pair &b)
 // Function to calculate the cost of rotation between two directions
 int RotationCost(Direction from, Direction to)
 {
-    return (from == to) ? 0 : 1;
+    // Define opposite directions
+    if ((from == UP && to == DOWN) || (from == DOWN && to == UP) ||
+        (from == LEFT && to == RIGHT) || (from == RIGHT && to == LEFT))
+    {
+        return 0; // No rotation cost for opposite directions
+    }
+    return 1; // Default rotation cost
 }
 
 // Function to get constraint time for a given position
@@ -40,11 +46,11 @@ std::vector<State> GetNeighbors(
 {
     std::vector<State> neighbors;
     std::vector<Pair> direction_vectors = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-    std::vector<Direction> directions = {RIGHT, DOWN, LEFT, UP};
+    std::vector<Direction> directions = {DOWN, RIGHT, UP, LEFT};
 
     for (int i = 0; i < directions.size(); ++i)
     {
-        Direction new_direction = static_cast<Direction>(i);
+        Direction new_direction = directions[i];
         Pair direction_vector = direction_vectors[i];
         Pair next_cell = {current.position.first + direction_vector.first, current.position.second + direction_vector.second};
         int next_time_step = current.time_step + 1;
@@ -78,6 +84,14 @@ std::vector<State> GetNeighbors(
             continue;
         }
 
+        // If moving in the opposite direction, keep the same direction
+        Direction current_direction = current.direction;
+        if ((current_direction == UP && new_direction == DOWN) || (current_direction == DOWN && new_direction == UP) ||
+            (current_direction == LEFT && new_direction == RIGHT) || (current_direction == RIGHT && new_direction == LEFT))
+        {
+            new_direction = current_direction; // Keep the same direction
+        }
+
         neighbors.push_back({next_cell, new_direction, next_time_step});
     }
 
@@ -99,10 +113,10 @@ std::vector<std::vector<int>> AStarAlgorithm(
         std::vector<std::tuple<int, State>>,
         std::greater<std::tuple<int, State>>>
         open_list;
-    open_list.push({0, {start, RIGHT, 0}});
+    open_list.push({0, {start, UP, 0}});
 
     std::map<State, int> g_costs;
-    g_costs[{start, RIGHT, 0}] = 0;
+    g_costs[{start, UP, 0}] = 0;
 
     std::map<State, State> came_from;
 
@@ -163,7 +177,7 @@ std::vector<std::vector<int>> AStarAlgorithm(
                 path.push_back({current.position.first, current.position.second, static_cast<int>(current.direction), current.time_step});
                 current = came_from[current];
             }
-            path.push_back({start.first, start.second, static_cast<int>(RIGHT), 0});
+            path.push_back({start.first, start.second, static_cast<int>(UP), 0});
             std::reverse(path.begin(), path.end());
             return path;
         }
