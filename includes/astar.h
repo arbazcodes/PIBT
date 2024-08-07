@@ -24,6 +24,11 @@ struct Constraint
     int x;
     int y;
     int time;
+
+    bool operator<(const Constraint &other) const
+    {
+        return std::tie(type, x, y, time) > std::tie(other.type, other.x, other.y, other.time);
+    }
 };
 
 struct State
@@ -50,6 +55,7 @@ std::vector<State> GetNeighbors(
     const std::vector<std::vector<int>> &grid,
     std::map<int, std::set<Pair>> vertex_constraint_map,
     std::map<int, std::set<Pair>> edge_constraint_map,
-    std::vector<std::vector<int>> stopping_constraint_map);
+    std::vector<std::vector<int>> stopping_constraint_map,
+    std::map<int, std::set<Pair>> following_constraint_map);
 
 #endif
