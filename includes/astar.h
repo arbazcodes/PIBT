@@ -34,7 +34,7 @@ struct State
 
     bool operator<(const State &other) const
     {
-        return std::tie(position, direction, time_step) < std::tie(other.position, other.direction, other.time_step);
+        return std::tie(position, direction, time_step) > std::tie(other.position, other.direction, other.time_step);
     }
 };
 
