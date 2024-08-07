@@ -4,6 +4,8 @@
 #include <vector>
 #include <utility>
 #include <optional>
+#include <map>
+#include <set>
 
 typedef std::pair<int, int> Pair;
 
@@ -12,12 +14,12 @@ enum Direction
     RIGHT,
     DOWN,
     LEFT,
-    UP,
-    STAY
+    UP
 };
 
 struct Constraint
 {
+    int type;
     int id;
     int x;
     int y;
@@ -41,5 +43,13 @@ std::vector<std::vector<int>> AStarAlgorithm(
     const Pair &goal,
     const std::vector<Constraint> &constraints,
     const std::vector<std::vector<int>> &grid);
+
+std::vector<State> GetNeighbors(
+    const State &current,
+    const Pair &goal,
+    const std::vector<std::vector<int>> &grid,
+    std::map<int, std::set<Pair>> vertex_constraint_map,
+    std::map<int, std::set<Pair>> edge_constraint_map,
+    std::vector<std::vector<int>> stopping_constraint_map);
 
 #endif

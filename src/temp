@@ -1,0 +1,136 @@
+while ( !openList.empty() )
+    {
+        timesteps += 1;
+        if ( timesteps == 100 ) break;
+
+        if ( DISPLAY_ASTAR_DETAILS )
+        {
+            std::cout << "----------t = " << timesteps << "---------------" << std::endl;
+            std::cout << "Open List: " << std::endl;
+            PrintList(openList);
+            std::cout << "Visited List: " << std::endl;
+            PrintList(visited);
+        }
+
+        auto current_iterator = openList.begin();
+        current = *current_iterator;
+        int stoppingConstraint = -1;
+
+        for ( auto it = openList.begin(); it != openList.end(); ++it )
+        {
+            if ( (*it)->coordinates[0] == destination[0] && (*it)->coordinates[1] == destination[1] )
+            {
+                int constraintTime = CheckConstraints(current, destination, currentRobotID, constraints, 1);
+
+                if ( (*it)->coordinates[3] ==  constraintTime ) // destination found in open list at EXACTLY constraint time
+                {
+                    // do not pick destination node, pick some other node
+                    // since we will never pick it, delete it from open list
+                    openList.erase( it );
+                    --it;
+                    continue;
+                }
+                else if ( (*it)->coordinates[3] < constraintTime ) // destination is in open list but BEFORE constraint time
+                {
+                    // can pick destination node, but we will have to visit it again, ----------CANCEL THIS IDEA: so DO NOT put it in visited
+                    // but it will pick this node again and again at this time
+                    // how about we put it in visited, but ignore the destination in the visited
+                    // let's see if it is picked again with different timestamp
+                    if ( (*it)->F <= current->F )
+                    {
+                        current = *it;
+                        current_iterator = it;
+                    }
+                    break; // get out. don't check other nodes
+                }
+                else // destination in open list AFTER constraint time
+                {
+                    stoppingConstraint = 1;
+                    // pick the destination and end the algo
+                    current = *it;
+                    current_iterator = it;
+                    break;
+                }
+            }
+            else if ( (*it)->F <= current->F )
+            {
+                current = *it;
+                current_iterator = it;
+            }
+        }
+
+        std::cout << "Current: (" << current->coordinates[0] << ", " << current->coordinates[1] << ", " << current->coordinates[2] << ", " << current->coordinates[3] << ")" << std::endl;
+
+        if ( current->coordinates[0] == destination[0] && current->coordinates[1] == destination[1] && stoppingConstraint == 1)
+        {
+            break;
+        }
+            
+        
+        visited.insert(current);
+        openList.erase(current_iterator);
+    
+        int addedNeighbors = 0;
+
+        // See neighbors (up, down, left, right)
+        for (int i = 0; i < directions.size(); ++i)
+        {
+            glm::vec2 currentCoordinates(current->coordinates[0], current->coordinates[1]);
+            glm::vec2 newCoordinates = currentCoordinates + directions[i];
+
+            //                   (1, 2, 0)
+            //    UP        RIGHT        DOWN          LEFT
+            // (1, 1, 0)  (2, 2, 1)    (1, 3, 2)     (0, 2, 3)
+
+            if ( DetectCollision(newCoordinates) )
+            {
+                continue;
+            }
+                
+            if( FindNodeInList(visited, newCoordinates, destination))//, current->coordinates[3] + 1) )
+            {
+                continue;
+            }
+
+            //if ( current->coordinates[2] == i ) // going in the same direction
+            int totalCost = current->G + LINEAR_MOVEMENT_COST;
+
+            if ( current->coordinates[2] != i )
+                    totalCost += ROTATION_COST;
+
+            SingleAgentState* neighbor = FindNodeInList(openList, newCoordinates);//, current->coordinates[3] + 1);
+
+            if ( neighbor == nullptr ) // second logical condition is for WAIT on same coordinate
+            {
+                neighbor = new SingleAgentState;
+                neighbor->coordinates.push_back(newCoordinates[0]);
+                neighbor->coordinates.push_back(newCoordinates[1]);
+                neighbor->coordinates.push_back(i); // direction
+                neighbor->coordinates.push_back(current->coordinates[3] + 1); // t + 1
+                neighbor->G = totalCost;
+                neighbor->Parent = current;
+                //std::cout << "New neighbor added" << std::endl;
+
+                // Let all direction movements be of same cost right now (CHANGE LATE - PROPORTIONAL TO ROTATION)
+                neighbor->H = EucledianWithDirection(neighbor->coordinates, destination);
+
+                neighbor->F = neighbor->G + neighbor->H;
+
+                // if this robot has a constraint on these coordinates, do not put these coordinates in the open list
+                if ( ! CheckConstraints(neighbor, destination, currentRobotID, constraints) )
+                {
+                    openList.insert(neighbor);
+                    addedNeighbors += 1;
+                }
+                // std::cout << "(" << neighbor->coordinates[0] << ", " << neighbor->coordinates[1] << ", " << neighbor->coordinates[2] << ") came from ";
+                // std::cout << "(" << current->coordinates[0] << ", " << current->coordinates[1] << ", " << current->coordinates[2] << ")" << std::endl;
+            }
+            else if ( totalCost  < neighbor->G )
+            {
+                neighbor->Parent = current;
+                neighbor->G = totalCost;
+                neighbor->coordinates[2] = current->coordinates[2];
+                neighbor->coordinates[3] = current->coordinates[3];
+            }
+        } // for all directions
+    } // loop done

@@ -27,7 +27,7 @@ std::optional<std::vector<CostPath>> Cbs::LowLevel(
 
         if (path.empty())
         {
-            std::cout<<"No solution found for Agent "<<i<<"with constraint."<<std::endl;
+            //std::cout << "No solution found for Agent " << i << " with constraint." << std::endl;
             return std::nullopt;
         }
         solution.push_back(path);
@@ -48,7 +48,6 @@ int Cbs::FindTotalCost(const std::vector<CostPath> &solution) const
 
     return total_cost;
 }
-
 
 std::vector<std::vector<int>> Cbs::FindConflictsVertex(const std::vector<CostPath> &solution) const
 {
@@ -84,7 +83,6 @@ std::vector<std::vector<int>> Cbs::FindConflictsVertex(const std::vector<CostPat
         }
     }
 
-
     return Conflicts;
 }
 
@@ -107,7 +105,7 @@ std::vector<std::vector<int>> Cbs::FindConflictsEdge(const std::vector<CostPath>
 
                 // Check for edge conflicts where agents swap places
                 if ((pos1_t[0] == pos2_t1[0] && pos1_t[1] == pos2_t1[1] &&
-                        pos2_t[0] == pos1_t1[0] && pos2_t[1] == pos1_t1[1]))
+                     pos2_t[0] == pos1_t1[0] && pos2_t[1] == pos1_t1[1]))
                 {
                     // Edge conflict detected
                     conflicts.push_back({i, j, pos1_t[0], pos1_t[1], pos2_t[0], pos2_t[1], t + 1});
@@ -147,7 +145,7 @@ std::vector<std::vector<int>> Cbs::FindStoppingConflicts(const std::vector<CostP
 
                 if (pos2.size() == 4 && pos2[0] == goal_x && pos2[1] == goal_y)
                 {
-                    stopping_conflicts.push_back({i, j, goal_x, goal_y, t, (int) path1.size() - 1});
+                    stopping_conflicts.push_back({i, j, goal_x, goal_y, t, (int)path1.size() - 1});
                 }
             }
         }
@@ -171,7 +169,7 @@ std::vector<std::vector<int>> Cbs::FindConflicts(const std::vector<CostPath> &so
     // Check for stopping conflicts
     auto stopping_conflicts = FindStoppingConflicts(solution);
     conflicts.insert(conflicts.end(), stopping_conflicts.begin(), stopping_conflicts.end());
-    
+
     return conflicts;
 }
 
@@ -183,18 +181,18 @@ std::vector<Constraint> Cbs::GenerateConstraints(const std::vector<std::vector<i
     {
         if (conflict.size() == 5) // Vertex conflict
         {
-            constraints.push_back({conflict[0], conflict[2], conflict[3], conflict[4]});
-            constraints.push_back({conflict[1], conflict[2], conflict[3], conflict[4]});
+            constraints.push_back({0, conflict[0], conflict[2], conflict[3], conflict[4]});
+            constraints.push_back({0, conflict[1], conflict[2], conflict[3], conflict[4]});
         }
         else if (conflict.size() == 7) // Edge conflict
         {
-            constraints.push_back({conflict[0], conflict[4], conflict[5], conflict[6]});
-            constraints.push_back({conflict[1], conflict[2], conflict[3], conflict[6]});
+            constraints.push_back({1, conflict[0], conflict[4], conflict[5], conflict[6]});
+            constraints.push_back({1, conflict[1], conflict[2], conflict[3], conflict[6]});
         }
         else if (conflict.size() == 6) // Stopping conflict
         {
-            constraints.push_back({conflict[1], conflict[2], conflict[3], conflict[4]});
-            constraints.push_back({conflict[0], conflict[2], conflict[3], conflict[5]});
+            constraints.push_back({2, conflict[1], conflict[2], conflict[3], conflict[4]});
+            constraints.push_back({2, conflict[0], conflict[2], conflict[3], conflict[4]});
         }
     }
 
@@ -258,7 +256,7 @@ std::vector<CostPath> Cbs::HighLevel(const std::vector<Pair> &sources, const std
 // std::vector<CostPath> Cbs::HighLevel(const std::vector<Pair> &sources, const std::vector<Pair> &destinations) const
 // {
 
-//     auto solution = LowLevel(sources, destinations, {{0, 0, 1, 1}, {1, 0, 0, 1}});
+//     auto solution = LowLevel(sources, destinations, {{1, 0, 0, 1, 1}, {1, 1, 0, 0, 1}, {2, 1, 1, 1, 1}});
 //     std::cout << "Final Solution Paths and Costs:" << std::endl;
 //     for (size_t i = 0; i < sources.size(); ++i)
 //     {
@@ -292,7 +290,17 @@ std::vector<CostPath> Cbs::HighLevel(const std::vector<Pair> &sources, const std
 //     std::cout << "New Constraints: ";
 //     for (const auto &constraint : new_constraints)
 //     {
-//         std::cout << "(" << constraint.id << ", " << constraint.x << ", " << constraint.y << ", " << constraint.time << ") ";
+//         if(constraint.type == 0){
+//             std::cout << "Vertex Constraint: " << "(" << constraint.id << ", " << constraint.x << ", " << constraint.y << ", " << constraint.time << ") ";
+//         }
+//         if (constraint.type == 1)
+//         {
+//             std::cout << "Edge Constraint: " << "(" << constraint.id << ", " << constraint.x << ", " << constraint.y << ", " << constraint.time << ") ";
+//         }
+//         if (constraint.type == 2)
+//         {
+//             std::cout << "Stopping Constraint: " << "(" << constraint.id << ", " << constraint.x << ", " << constraint.y << ", " << constraint.time << ") ";
+//         }
 //     }
 //     std::cout << std::endl;
 //     return {};

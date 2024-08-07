@@ -17,7 +17,7 @@ struct CbsNode
 
     bool operator<(const CbsNode &other) const
     {
-        return (cost > other.cost);
+        return (cost > other.cost && constraints.size() > other.constraints.size());
     }
 };
 
