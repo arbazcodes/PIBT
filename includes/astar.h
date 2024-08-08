@@ -11,10 +11,11 @@ typedef std::pair<int, int> Pair;
 
 enum Direction
 {
-    RIGHT,
+    UP,
     DOWN,
     LEFT,
-    UP
+    RIGHT,
+    STAY
 };
 
 struct Constraint

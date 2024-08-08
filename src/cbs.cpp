@@ -164,11 +164,11 @@ std::vector<std::vector<int>> Cbs::FindConflictsFollow(const std::vector<CostPat
         {
             const std::vector<std::vector<int>> &path_2 = solution[j];
 
-            // Check for vertex conflicts
+            // Check for follow conflicts
             for (int t = 1; t < path_1.size() && t < path_2.size(); ++t)
             {
                 const auto &step_1 = path_1[t];
-                const auto &step_2 = path_2[t + 1];
+                const auto &step_2 = path_2[t - 1];
 
                 if (step_1.size() == 4 && step_2.size() == 4)
                 {
@@ -179,7 +179,7 @@ std::vector<std::vector<int>> Cbs::FindConflictsFollow(const std::vector<CostPat
 
                     if ((x1 == x2 && y1 == y2))
                     {
-                        Conflicts.push_back({-1, j, i, x1, y1, t + 1, t});
+                        Conflicts.push_back({-1, j, i, x1, y1, t - 1, t});
                     }
                 }
             }
@@ -237,7 +237,8 @@ std::vector<Constraint> Cbs::GenerateConstraints(const std::vector<std::vector<i
         }
         else if (conflict.size() == 7 && conflict[0] == -1) // Following conflict
         {
-            constraint_set.push_back({3, conflict[1], conflict[3], conflict[4], conflict[5]});
+            if(conflict[5] > 0)
+                constraint_set.push_back({3, conflict[1], conflict[3], conflict[4], conflict[5]});
             constraint_set.push_back({3, conflict[2], conflict[3], conflict[4], conflict[6]});
         }
     }

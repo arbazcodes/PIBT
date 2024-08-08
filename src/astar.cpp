@@ -46,8 +46,8 @@ std::vector<State> GetNeighbors(
     std::map<int, std::set<Pair>> following_constraint_map)
 {
     std::vector<State> neighbors;
-    std::vector<Pair> direction_vectors = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-    std::vector<Direction> directions = {DOWN, RIGHT, UP, LEFT};
+    std::vector<Pair> direction_vectors = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}, {0, 0}};
+    std::vector<Direction> directions = {DOWN, RIGHT, UP, LEFT, STAY};
 
     for (int i = 0; i < directions.size(); ++i)
     {
