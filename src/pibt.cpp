@@ -168,7 +168,7 @@ bool pibt::PIBT(Agent *ai, Agent *aj)
         }
 
         found_valid_move = true;
-        std::cout << "Vertex: (" << ai->v_next->x << ", " << ai->v_next->y << ") reserved by Agent: " << ai->id << std::endl;
+        //std::cout << "Vertex: (" << ai->v_next->x << ", " << ai->v_next->y << ") reserved by Agent: " << ai->id << std::endl;
         break;
     }
 
