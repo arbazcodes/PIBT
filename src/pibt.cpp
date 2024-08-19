@@ -2,9 +2,6 @@
 #include <algorithm>
 #include <iostream>
 #include <random>
-#include <unordered_map>
-#include <algorithm> // For std::shuffle and std::sort
-#include <random>    // For std::random_device and std::mt19937
 
 int pibt::HeuristicDistance(const Vertex *start, const Vertex *goal)
 {
@@ -61,22 +58,21 @@ pibt::pibt(int w, int h,
 
         Agent *agent = new Agent{
             static_cast<int>(i), // id
-                start_vertex,    // current location
-                nullptr,
-                start_vertex,  // next location
-                goal_vertex,   // goal
-                priorities[i], // unique priority
-                false,
-                {std::make_pair(start_vertex->x, start_vertex->y)}
-            };
-
+            start_vertex,        // current location
+            nullptr,             // next location
+            start_vertex,        // start
+            goal_vertex,         // goal
+            priorities[i],       // unique priority
+            false,               // reached goal
+            Direction::None,     // initialize current direction
+            Direction::None,     // initialize previous direction
+            {}                   // initialize path
+        };
+        agent->Path.push_back({start_vertex->x, start_vertex->y, Direction::None});
         agents.push_back(agent);
     }
-
-    // PrintAgents();
 }
 
-// Destructor implementation
 pibt::~pibt()
 {
     for (Agent *agent : agents)
@@ -85,26 +81,32 @@ pibt::~pibt()
     }
 }
 
-Agent * pibt::FindConflictingAgent(const Vertex *v, const Agent *agent){
+Agent *pibt::FindConflictingAgent(const Vertex *v, const Agent *agent)
+{
     for (auto ak : agents)
     {
-        if(ak->v_now == v && ak->v_next == nullptr && ak->id != agent->id){
+        if (ak->v_now == v && ak->v_next == nullptr && ak->id != agent->id)
+        {
             return ak;
         }
     }
     return nullptr;
 }
 
-bool pibt::AllReached(){
-    for(auto agent : agents){
-        if(!agent->reached_goal)
+bool pibt::allReached()
+{
+    for (auto agent : agents)
+    {
+        if (!agent->reached_goal)
             return false;
     }
     return true;
 }
 
-void pibt::PrintAgents(){
-    for(auto agent : agents){
+void pibt::PrintAgents()
+{
+    for (auto agent : agents)
+    {
         std::cout << "Agent ID: " << agent->id << '\n';
         std::cout << "Current Location: (" << agent->v_now->x << ", " << agent->v_now->y << ")\n";
         std::cout << "Next Location: ";
@@ -125,6 +127,12 @@ void pibt::PrintAgents(){
 // Function to determine next move for an agent
 bool pibt::PIBT(Agent *ai, Agent *aj)
 {
+    float ai_original_priority = ai->priority;
+    if (aj)
+    {
+        ai->priority = std::max(ai->priority, aj->priority);
+    }
+
     auto compare = [&](Vertex *const v, Vertex *const u)
     {
         int d_v = HeuristicDistance(v, ai->goal);
@@ -158,17 +166,15 @@ bool pibt::PIBT(Agent *ai, Agent *aj)
         ai->v_next = u;
         Agent *conflicting_agent = FindConflictingAgent(u, ai);
 
-        if (conflicting_agent)
+        if (conflicting_agent && conflicting_agent->priority < ai->priority)
         {
             if (!PIBT(conflicting_agent, ai))
             {
-                ai->v_next = ai->v_now; // Revert move if conflict resolution failed
-                return false;
+                continue;
             }
         }
 
         found_valid_move = true;
-        //std::cout << "Vertex: (" << ai->v_next->x << ", " << ai->v_next->y << ") reserved by Agent: " << ai->id << std::endl;
         break;
     }
 
@@ -177,6 +183,7 @@ bool pibt::PIBT(Agent *ai, Agent *aj)
         ai->v_next = ai->v_now;
     }
 
+    ai->priority = ai_original_priority;
     return found_valid_move;
 }
 
@@ -187,7 +194,7 @@ void pibt::run()
         return a->priority > b->priority;
     };
 
-    while (!AllReached())
+    while (!allReached())
     {
         for (auto *agent : agents)
         {
@@ -195,16 +202,37 @@ void pibt::run()
                 agent->priority++;
             else
                 agent->reached_goal = true;
-            if(agent->v_next != nullptr) {
-                agent->Path.push_back(std::make_pair(agent->v_next->x, agent->v_next->y));
+
+            if (agent->v_next != nullptr)
+            {
+                agent->current_direction = Direction::None;
+
+                if (agent->v_next->x == agent->v_now->x && agent->v_next->y == agent->v_now->y - 1)
+                    agent->current_direction = Direction::Up;
+                else if (agent->v_next->x == agent->v_now->x && agent->v_next->y == agent->v_now->y + 1)
+                    agent->current_direction = Direction::Down;
+                else if (agent->v_next->x == agent->v_now->x - 1 && agent->v_next->y == agent->v_now->y)
+                    agent->current_direction = Direction::Left;
+                else if (agent->v_next->x == agent->v_now->x + 1 && agent->v_next->y == agent->v_now->y)
+                    agent->current_direction = Direction::Right;
+
+                // Maintain direction consistency for opposite moves
+                if ((agent->current_direction == Direction::Up && agent->prev_direction == Direction::Down) ||
+                    (agent->current_direction == Direction::Down && agent->prev_direction == Direction::Up) ||
+                    (agent->current_direction == Direction::Left && agent->prev_direction == Direction::Right) ||
+                    (agent->current_direction == Direction::Right && agent->prev_direction == Direction::Left))
+                {
+                    agent->current_direction = agent->prev_direction;
+                }
+
+                agent->Path.push_back({agent->v_next->x, agent->v_next->y, agent->current_direction});
+                agent->prev_direction = agent->current_direction; // Update previous direction
                 agent->v_now = agent->v_next;
                 agent->v_next = nullptr;
             }
         }
 
         std::sort(agents.begin(), agents.end(), compare);
-
-        //PrintAgents();
 
         for (auto *agent : agents)
         {

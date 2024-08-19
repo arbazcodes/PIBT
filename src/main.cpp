@@ -72,10 +72,10 @@ void EnsureUniqueStartAndGoal(std::vector<std::pair<int, int>> &starts, std::vec
 
 int main()
 {
-    const int num_agents = 15; // Number of agents
-    const int width = 9;
-    const int height = 9;
-    const int num_iterations = 500; // Number of iterations to run
+    const int num_agents = 36; // Number of agents
+    const int width = 6;
+    const int height = 6;
+    const int num_iterations = 10000; // Number of iterations to run
 
     // Setup random number generation
     std::random_device rd;
@@ -92,10 +92,10 @@ int main()
 
         std::cout << "Iteration: " << iteration << std::endl;
 
-        for (int i = 0; i < starts.size(); i++)
-        {
-            std::cout << "Start: (" << starts[i].first << ", " << starts[i].second << ")---" << "Goal: (" << goals[i].first << ", " << goals[i].second << ")" << std::endl;
-        }
+        // for (int i = 0; i < starts.size(); i++)
+        // {
+        //     std::cout << "Start: (" << starts[i].first << ", " << starts[i].second << ")---" << "Goal: (" << goals[i].first << ", " << goals[i].second << ")" << std::endl;
+        // }
 
 
         try
@@ -106,19 +106,19 @@ int main()
             // Run the PIBT algorithm
             planner.run();
 
-            // Print results
-            std::cout << "Final positions of agents:\n";
-            for (const Agent *agent : planner.agents)
-            {
-                std::cout << "Agent " << agent->id
-                        //   << " - Start: (" << agent->start->x << ", " << agent->start->y << ")"
-                        //   << " - Goal: (" << agent->goal->x << ", " << agent->goal->y << ")"
-                        //   << " - End: (" << agent->v_next->x << ", " << agent->v_next->y << ")\n"
-                          << " - Path: \n";
-                for (auto vertex : agent->Path)
-                    std::cout << "(" << vertex.first << ", " << vertex.second << ")";
-                std::cout << std::endl;
-            }
+            // // Print results
+            // std::cout << "Final positions of agents:\n";
+            // for (const Agent *agent : planner.agents)
+            // {
+            //     std::cout << "Agent " << agent->id
+            //             //   << " - Start: (" << agent->start->x << ", " << agent->start->y << ")"
+            //             //   << " - Goal: (" << agent->goal->x << ", " << agent->goal->y << ")"
+            //             //   << " - End: (" << agent->v_next->x << ", " << agent->v_next->y << ")\n"
+            //               << " - Path: \n";
+            //     for (auto vertex : agent->Path)
+            //         std::cout << "(" << vertex[0] << ", " << vertex[1] <<", " << vertex[2] << ")";
+            //     std::cout << std::endl;
+            // }
         }
         catch (const std::exception &e)
         {
