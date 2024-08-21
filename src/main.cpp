@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iterator>
 #include <set>
+#include <chrono> // Include chrono for timing
 #include "pibt.h"
 
 // Function to generate unique random positions within grid bounds
@@ -72,60 +73,135 @@ void EnsureUniqueStartAndGoal(std::vector<std::pair<int, int>> &starts, std::vec
 
 int main()
 {
-    const int num_agents = 36; // Number of agents
-    const int width = 6;
-    const int height = 6;
+    const int num_agents = 30; // Number of agents
+    const int width = 8;
+    const int height = 8;
     const int num_iterations = 10000; // Number of iterations to run
 
     // Setup random number generation
     std::random_device rd;
     std::mt19937 rng(rd());
 
+    int failure_count = 0;
+    std::chrono::duration<double> total_duration(0);
+
     for (int iteration = 0; iteration < num_iterations; ++iteration)
     {
+        auto start_time = std::chrono::high_resolution_clock::now();
+
         // Generate unique random sources and destinations
         auto starts = GenerateUniqueRandomPositions(num_agents, height, width, rng);
         auto goals = GenerateUniqueRandomPositions(num_agents, height, width, rng);
 
         // Ensure that starts and goals are different
-        EnsureUniqueStartAndGoal(starts, goals, rng, height, width);
+        // EnsureUniqueStartAndGoal(starts, goals, rng, height, width);
 
         std::cout << "Iteration: " << iteration << std::endl;
 
-        // for (int i = 0; i < starts.size(); i++)
-        // {
-        //     std::cout << "Start: (" << starts[i].first << ", " << starts[i].second << ")---" << "Goal: (" << goals[i].first << ", " << goals[i].second << ")" << std::endl;
-        // }
-
+        pibt *planner = nullptr;
 
         try
         {
+            int recursive_run = 0;
 
-            pibt planner(width, height, starts, goals);
+            while (recursive_run < 10)
+            {
+                // Create a new planner instance
+                planner = new pibt(width, height, starts, goals);
+                // Run the PIBT algorithm with a timeout
+                planner->timesteps = 0;
+                planner->failed = false; // Reset failure flag
+                planner->run();
 
-            // Run the PIBT algorithm
-            planner.run();
-
-            // // Print results
-            // std::cout << "Final positions of agents:\n";
-            // for (const Agent *agent : planner.agents)
-            // {
-            //     std::cout << "Agent " << agent->id
-            //             //   << " - Start: (" << agent->start->x << ", " << agent->start->y << ")"
-            //             //   << " - Goal: (" << agent->goal->x << ", " << agent->goal->y << ")"
-            //             //   << " - End: (" << agent->v_next->x << ", " << agent->v_next->y << ")\n"
-            //               << " - Path: \n";
-            //     for (auto vertex : agent->Path)
-            //         std::cout << "(" << vertex[0] << ", " << vertex[1] <<", " << vertex[2] << ")";
-            //     std::cout << std::endl;
-            // }
+                if (planner->failed)
+                {
+                    recursive_run += 1;
+                    if (recursive_run == 10)
+                    {
+                        failure_count++;
+                        std::cout << "Failed or Timed Out!\n";
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
         }
         catch (const std::exception &e)
         {
             std::cerr << "Error: " << e.what() << '\n';
-            return 1;
+            failure_count++;
         }
+
+        // Cleanup
+        delete planner;
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> iteration_duration = end_time - start_time;
+        total_duration += iteration_duration;
+
+        std::cout << "Iteration Time: " << iteration_duration.count() << " seconds" << std::endl;
     }
+
+    // Calculate and print the average time per iteration
+    double average_time = total_duration.count() / num_iterations;
+    std::cout << "Average Time per Iteration: " << average_time << " seconds" << std::endl;
+    std::cout << "Passed: " << (num_iterations - failure_count) << " Failed: " << failure_count << " Percentage: " << (float)(((failure_count) / (float)(num_iterations - failure_count)) * 100) << "%" << std::endl;
 
     return 0;
 }
+
+// std::vector<std::pair<int, int>> starts = {
+//     {4, 2},
+//     {2, 1},
+//     {0, 5},
+//     {5, 2},
+//     {1, 0},
+//     {2, 4},
+//     {4, 3},
+//     {5, 4},
+//     {2, 2},
+//     {3, 0},
+//     {2, 5},
+//     {0, 0},
+//     {0, 1},
+//     {4, 0},
+//     {1, 4},
+//     {3, 5},
+//     {1, 1},
+//     {4, 5},
+//     {5, 1},
+//     {0, 4},
+//     {1, 3},
+//     {0, 3},
+//     {1, 5},
+//     {3, 3},
+//     {1, 2}};
+
+// std::vector<std::pair<int, int>> goals = {
+//     {0, 3},
+//     {5, 5},
+//     {1, 1},
+//     {5, 1},
+//     {5, 4},
+//     {4, 2},
+//     {0, 4},
+//     {1, 0},
+//     {3, 3},
+//     {5, 2},
+//     {0, 2},
+//     {1, 3},
+//     {3, 2},
+//     {1, 2},
+//     {0, 5},
+//     {4, 1},
+//     {3, 4},
+//     {5, 3},
+//     {4, 4},
+//     {3, 5},
+//     {2, 0},
+//     {1, 4},
+//     {3, 0},
+//     {1, 5},
+//     {4, 5}};

@@ -3,9 +3,15 @@
 #include <iostream>
 #include <random>
 
+// TODO: Improve Heuristic
 int pibt::HeuristicDistance(const Vertex *start, const Vertex *goal)
 {
-    return std::abs(start->x - goal->x) + std::abs(start->y - goal->y);
+    // Manhattan distance
+    int distance = std::abs(start->x - goal->x) + std::abs(start->y - goal->y);
+    int movement_cost = (start->x == goal->x && start->y == goal->y) ? 0 : 2;
+    //int direction_change_cost = (start->direction != current_direction) ? 3 : 4;
+
+    return distance;
 }
 
 pibt::pibt(int w, int h,
@@ -54,7 +60,7 @@ pibt::pibt(int w, int h,
             throw std::runtime_error("Invalid start or goal location.");
         }
 
-        int init_dist = disable_dist_init ? 0 : HeuristicDistance(start_vertex, goal_vertex);
+        // int init_dist = disable_dist_init ? 0 : HeuristicDistance(start_vertex, goal_vertex);
 
         Agent *agent = new Agent{
             static_cast<int>(i), // id
@@ -65,7 +71,6 @@ pibt::pibt(int w, int h,
             priorities[i],       // unique priority
             false,               // reached goal
             Direction::None,     // initialize current direction
-            Direction::None,     // initialize previous direction
             {}                   // initialize path
         };
         agent->Path.push_back({start_vertex->x, start_vertex->y, Direction::None});
@@ -141,10 +146,13 @@ bool pibt::PIBT(Agent *ai, Agent *aj)
     };
 
     std::vector<Vertex *> candidates = graph.GetNeighbors(ai->v_now);
-    candidates.push_back(ai->v_now); // Include current vertex as a candidate
+    ai->v_now->direction = Direction::None;
+    candidates.push_back(ai->v_now);
     std::sort(candidates.begin(), candidates.end(), compare);
 
     bool found_valid_move = false;
+
+    bool tried_backtracking = false;
 
     for (Vertex *u : candidates)
     {
@@ -158,7 +166,27 @@ bool pibt::PIBT(Agent *ai, Agent *aj)
             }
         }
 
-        if (vertex_conflict || (aj && aj->v_now == u))
+        bool higher_priority_conflict = false;
+        for (auto ak : agents)
+        {
+            if (ak->v_now == u && ak->id != ai->id && ak->priority >= ai->priority)
+            {
+                higher_priority_conflict = true;
+                break;
+            }
+        }
+
+        bool follow_conflict = false;
+        for (auto ak : agents)
+        {
+            if (ak->id != ai->id && ak->v_next != nullptr && ak->v_now == u)
+            {
+                follow_conflict = true;
+                break;
+            }
+        }
+
+        if (vertex_conflict || higher_priority_conflict || follow_conflict || (aj && aj->v_now == u))
         {
             continue;
         }
@@ -166,16 +194,42 @@ bool pibt::PIBT(Agent *ai, Agent *aj)
         ai->v_next = u;
         Agent *conflicting_agent = FindConflictingAgent(u, ai);
 
+        bool priority_inherit_done = false;
+
         if (conflicting_agent && conflicting_agent->priority < ai->priority)
         {
+            tried_backtracking = true;
+
             if (!PIBT(conflicting_agent, ai))
             {
+                priority_inherit_done = false;
                 continue;
+            }
+            else
+            {
+                priority_inherit_done = true;
             }
         }
 
-        found_valid_move = true;
-        break;
+        if (!tried_backtracking)
+        {
+            found_valid_move = true;
+            break;
+        }
+        else
+        {
+            if (priority_inherit_done)
+            {
+                ai->v_next = ai->v_now;
+                found_valid_move = true;
+                break;
+            }
+            else
+            {
+                ai->v_next = nullptr;
+                continue;
+            }
+        }
     }
 
     if (!found_valid_move)
@@ -205,28 +259,28 @@ void pibt::run()
 
             if (agent->v_next != nullptr)
             {
-                agent->current_direction = Direction::None;
-
+                Direction new_direction = Direction::None;
                 if (agent->v_next->x == agent->v_now->x && agent->v_next->y == agent->v_now->y - 1)
-                    agent->current_direction = Direction::Up;
+                    new_direction = Direction::Up;
                 else if (agent->v_next->x == agent->v_now->x && agent->v_next->y == agent->v_now->y + 1)
-                    agent->current_direction = Direction::Down;
+                    new_direction = Direction::Down;
                 else if (agent->v_next->x == agent->v_now->x - 1 && agent->v_next->y == agent->v_now->y)
-                    agent->current_direction = Direction::Left;
+                    new_direction = Direction::Left;
                 else if (agent->v_next->x == agent->v_now->x + 1 && agent->v_next->y == agent->v_now->y)
-                    agent->current_direction = Direction::Right;
+                    new_direction = Direction::Right;
 
                 // Maintain direction consistency for opposite moves
-                if ((agent->current_direction == Direction::Up && agent->prev_direction == Direction::Down) ||
-                    (agent->current_direction == Direction::Down && agent->prev_direction == Direction::Up) ||
-                    (agent->current_direction == Direction::Left && agent->prev_direction == Direction::Right) ||
-                    (agent->current_direction == Direction::Right && agent->prev_direction == Direction::Left))
+                if ((new_direction == Direction::Up && agent->current_direction == Direction::Down) ||
+                    (new_direction == Direction::Down && agent->current_direction == Direction::Up) ||
+                    (new_direction == Direction::Left && agent->current_direction == Direction::Right) ||
+                    (new_direction == Direction::Right && agent->current_direction == Direction::Left) ||
+                    (new_direction == Direction::None))
                 {
-                    agent->current_direction = agent->prev_direction;
+                    new_direction = agent->current_direction;
                 }
 
-                agent->Path.push_back({agent->v_next->x, agent->v_next->y, agent->current_direction});
-                agent->prev_direction = agent->current_direction; // Update previous direction
+                agent->Path.push_back({agent->v_next->x, agent->v_next->y, new_direction});
+                agent->current_direction = new_direction; // Update previous direction
                 agent->v_now = agent->v_next;
                 agent->v_next = nullptr;
             }
@@ -240,6 +294,14 @@ void pibt::run()
             {
                 PIBT(agent, nullptr);
             }
+        }
+
+        timesteps++;
+
+        if(timesteps > (agents.size() * std::max(graph.width, graph.height) * 10)){
+            failed = true;
+            timesteps = 0;
+            return;
         }
     }
 }

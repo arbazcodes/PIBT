@@ -4,15 +4,6 @@
 #include <vector>
 #include <unordered_map>
 
-enum Direction
-{
-    Up,
-    Down,
-    Left,
-    Right,
-    None
-};
-
 // PIBT agent
 struct Agent
 {
@@ -38,6 +29,8 @@ public:
     Graph graph;
     Agents agents;
     bool disable_dist_init;
+    int timesteps = 0;
+    bool failed = false;
 
     pibt(int w, int h,
          const std::vector<std::pair<int, int>> &starts,
