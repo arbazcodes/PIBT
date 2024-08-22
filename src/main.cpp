@@ -73,10 +73,10 @@ void EnsureUniqueStartAndGoal(std::vector<std::pair<int, int>> &starts, std::vec
 
 int main()
 {
-    const int num_agents = 30; // Number of agents
+    const int num_agents = 10; // Number of agents
     const int width = 8;
     const int height = 8;
-    const int num_iterations = 10000; // Number of iterations to run
+    const int num_iterations = 1; // Number of iterations to run
 
     // Setup random number generation
     std::random_device rd;
@@ -95,6 +95,11 @@ int main()
 
         // Ensure that starts and goals are different
         // EnsureUniqueStartAndGoal(starts, goals, rng, height, width);
+
+        for (int i = 0; i < starts.size(); i++)
+        {
+            std::cout << "Start: (" << starts[i].first << ", " << starts[i].second << ")---" << "Goal: (" << goals[i].first << ", " << goals[i].second << ")" << std::endl;
+        }
 
         std::cout << "Iteration: " << iteration << std::endl;
 
@@ -134,12 +139,23 @@ int main()
             failure_count++;
         }
 
-        // Cleanup
-        delete planner;
-
         auto end_time = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> iteration_duration = end_time - start_time;
         total_duration += iteration_duration;
+        
+        for (auto agent : planner->agents)
+        {
+            std::cout << "Agent " << agent->id << ": ";
+            for (const auto &step : agent->Path)
+            {
+                std::cout << "(" << step[0] << ", " << step[1] << ", " << step[2] << ")";
+            }
+            std::cout << std::endl;
+        }
+
+        // Cleanup
+        delete planner;
+
 
         std::cout << "Iteration Time: " << iteration_duration.count() << " seconds" << std::endl;
     }
