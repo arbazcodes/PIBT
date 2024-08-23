@@ -9,7 +9,7 @@ Graph::Graph(int w, int h)
     {
         for (int x = 0; x < width; ++x)
         {
-            Vertex *v = new Vertex(x, y);
+            Vertex *v = new Vertex(x, y, Direction::Up);
             locations.insert(v);
         }
     }

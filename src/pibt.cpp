@@ -3,23 +3,16 @@
 #include <iostream>
 #include <random>
 
-// TODO: Improve Heuristic
 int pibt::HeuristicDistance(const Vertex *start, const Vertex *goal)
 {
-    // Manhattan distance
-    int distance = std::abs(start->x - goal->x) + std::abs(start->y - goal->y);
-    int movement_cost = (start->x == goal->x && start->y == goal->y) ? 0 : 2;
-    //int direction_change_cost = (start->direction != current_direction) ? 3 : 4;
-
-    return distance;
+    return std::abs(start->x - goal->x) + std::abs(start->y - goal->y);
 }
 
 pibt::pibt(int w, int h,
-           const std::vector<std::pair<int, int>> &starts,
-           const std::vector<std::pair<int, int>> &goals)
+           const std::vector<std::vector<int>> &starts,
+           const std::vector<std::vector<int>> &goals)
     : graph(w, h),
-      agents(),
-      disable_dist_init(false)
+      agents()
 {
     // Create a list of unique priorities
     const size_t num_agents = starts.size();
@@ -45,11 +38,11 @@ pibt::pibt(int w, int h,
 
         for (Vertex *v : graph.locations)
         {
-            if (v->x == start.first && v->y == start.second)
+            if (v->x == start[0] && v->y == start[1])
             {
                 start_vertex = v;
             }
-            if (v->x == goal.first && v->y == goal.second)
+            if (v->x == goal[0] && v->y == goal[1])
             {
                 goal_vertex = v;
             }
@@ -60,8 +53,6 @@ pibt::pibt(int w, int h,
             throw std::runtime_error("Invalid start or goal location.");
         }
 
-        // int init_dist = disable_dist_init ? 0 : HeuristicDistance(start_vertex, goal_vertex);
-
         Agent *agent = new Agent{
             static_cast<int>(i), // id
             start_vertex,        // current location
@@ -70,10 +61,11 @@ pibt::pibt(int w, int h,
             goal_vertex,         // goal
             priorities[i],       // unique priority
             false,               // reached goal
-            Direction::None,     // initialize current direction
+            (Direction)start[0], // initialize current direction
             {}                   // initialize path
         };
-        agent->Path.push_back({start_vertex->x, start_vertex->y, Direction::None});
+        agent->Path.push_back({start_vertex->x, start_vertex->y, (Direction)start[2]});
+        agent->Path.push_back({start_vertex->x, start_vertex->y, (Direction)start[2]});
         agents.push_back(agent);
     }
 }
@@ -129,15 +121,15 @@ void pibt::PrintAgents()
     }
 }
 
+void pibt::SortAgentsById()
+{
+    std::sort(agents.begin(), agents.end(), [](const Agent *a, const Agent *b)
+              { return a->id < b->id; });
+}
+
 // Function to determine next move for an agent
 bool pibt::PIBT(Agent *ai, Agent *aj)
 {
-    float ai_original_priority = ai->priority;
-    if (aj)
-    {
-        ai->priority = std::max(ai->priority, aj->priority);
-    }
-
     auto compare = [&](Vertex *const v, Vertex *const u)
     {
         int d_v = HeuristicDistance(v, ai->goal);
@@ -146,99 +138,87 @@ bool pibt::PIBT(Agent *ai, Agent *aj)
     };
 
     std::vector<Vertex *> candidates = graph.GetNeighbors(ai->v_now);
-    ai->v_now->direction = Direction::None;
-    candidates.push_back(ai->v_now);
+    candidates.push_back(ai->v_now); // Include current vertex as a candidate
     std::sort(candidates.begin(), candidates.end(), compare);
-
-    bool found_valid_move = false;
-
-    bool tried_backtracking = false;
 
     for (Vertex *u : candidates)
     {
         bool vertex_conflict = false;
         for (auto ak : agents)
         {
-            if (ak->v_next == u && ak->id != ai->id)
+            if (ak->id == ai->id)
+                continue;
+            if (ak->v_next != nullptr)
             {
-                vertex_conflict = true;
-                break;
+                if (ak->v_next == u)
+                {
+                    vertex_conflict = true;
+                    break;
+                }
+                if (ak->v_now == u)
+                {
+                    vertex_conflict = true;
+                    break;
+                }
             }
         }
 
-        bool higher_priority_conflict = false;
-        for (auto ak : agents)
-        {
-            if (ak->v_now == u && ak->id != ai->id && ak->priority >= ai->priority)
-            {
-                higher_priority_conflict = true;
-                break;
-            }
-        }
-
-        bool follow_conflict = false;
-        for (auto ak : agents)
-        {
-            if (ak->id != ai->id && ak->v_next != nullptr && ak->v_now == u)
-            {
-                follow_conflict = true;
-                break;
-            }
-        }
-
-        if (vertex_conflict || higher_priority_conflict || follow_conflict || (aj && aj->v_now == u))
+        if (vertex_conflict || (aj && aj->v_now == u))
         {
             continue;
         }
 
         ai->v_next = u;
-        Agent *conflicting_agent = FindConflictingAgent(u, ai);
+        bool found_valid_move = true;
+        bool inherited = false;
 
-        bool priority_inherit_done = false;
-
-        if (conflicting_agent && conflicting_agent->priority < ai->priority)
+        for (auto ak : agents)
         {
-            tried_backtracking = true;
-
-            if (!PIBT(conflicting_agent, ai))
-            {
-                priority_inherit_done = false;
+            if (ak->id == ai->id)
                 continue;
+
+            if (!(ak->v_now == u))
+                continue;
+            if (ak->v_next != nullptr)
+                continue;
+
+            if (PIBT(ak, ai))
+            {
+                inherited = true;
             }
             else
             {
-                priority_inherit_done = true;
+                found_valid_move = false;
             }
+
+            // break;
         }
 
-        if (!tried_backtracking)
+        if (!found_valid_move)
         {
-            found_valid_move = true;
-            break;
+            // ai->v_next = ai->v_now;
+            ai->v_next = nullptr;
+            continue;
         }
-        else
+
+        int dx = ai->v_now->x - u->x;
+        int dy = ai->v_now->y - u->y;
+        bool moving_side = (ai->current_direction == 0 || ai->current_direction == 1) && dx;
+        bool moving_side_up = (ai->current_direction == 2 || ai->current_direction == 2) && dy;
+
+        if ((found_valid_move && inherited) || moving_side || moving_side_up)
         {
-            if (priority_inherit_done)
-            {
-                ai->v_next = ai->v_now;
-                found_valid_move = true;
-                break;
-            }
-            else
-            {
-                ai->v_next = nullptr;
-                continue;
-            }
+            ai->v_next = ai->v_now;
+            if (moving_side || moving_side_up)
+                ai->current_direction = u->direction;
         }
+
+        return found_valid_move;
     }
 
-    if (!found_valid_move)
-    {
-        ai->v_next = ai->v_now;
-    }
+    ai->v_next = ai->v_now;
 
-    ai->priority = ai_original_priority;
-    return found_valid_move;
+    return false;
 }
 
 void pibt::run()
@@ -295,10 +275,12 @@ void pibt::run()
                 PIBT(agent, nullptr);
             }
         }
+        ++timesteps;
 
         timesteps++;
 
-        if(timesteps > (agents.size() * std::max(graph.width, graph.height) * 10)){
+        if (timesteps > (agents.size() * std::max(graph.width, graph.height) * 10))
+        {
             failed = true;
             timesteps = 0;
             return;

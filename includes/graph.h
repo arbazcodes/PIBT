@@ -17,7 +17,7 @@ struct Vertex
     int x, y;
     Direction direction;
     Vertex() = default;
-    Vertex(int a, int b) : x(a), y(b){}
+    Vertex(int a, int b, Direction dir) : x(a), y(b), direction(dir) {}
 };
 
 class Graph

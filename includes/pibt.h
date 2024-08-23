@@ -15,7 +15,6 @@ struct Agent
     float priority;
     bool reached_goal;
     Direction current_direction;
-    Direction prev_direction;
     std::vector<std::vector<int>> Path;
 };
 
@@ -28,13 +27,12 @@ class pibt
 public:
     Graph graph;
     Agents agents;
-    bool disable_dist_init;
-    int timesteps = 0;
     bool failed = false;
+    int timesteps = 0;
 
     pibt(int w, int h,
-         const std::vector<std::pair<int, int>> &starts,
-         const std::vector<std::pair<int, int>> &goals);
+         const std::vector<std::vector<int>> &starts,
+         const std::vector<std::vector<int>> &goals);
     ~pibt();
 
     void run();
@@ -42,6 +40,7 @@ public:
     bool PIBT(Agent *ai, Agent *aj = nullptr);
     Agent *FindConflictingAgent(const Vertex *v, const Agent *agent);
     bool allReached();
+    void SortAgentsById();
 
 private:
     std::unordered_map<Vertex *, Agent *> occupied_now;
