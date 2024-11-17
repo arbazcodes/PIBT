@@ -1,7 +1,7 @@
 #pragma once
-
 #include <vector>
 #include <unordered_set>
+#include <string>
 
 enum Direction
 {
@@ -30,4 +30,5 @@ public:
     Graph(int w, int h);
     ~Graph();
     std::vector<Vertex *> GetNeighbors(const Vertex *v);
+    std::string DirectionToString(Direction direction);
 };

@@ -1,6 +1,6 @@
-#include "graph.h"
 #include <iostream>
 #include <stdexcept>
+#include "graph.h"
 
 Graph::Graph(int w, int h)
     : width(w), height(h)
@@ -58,4 +58,24 @@ std::vector<Vertex *> Graph::GetNeighbors(const Vertex *v)
     }
 
     return neighbors;
+}
+
+std::string Graph::DirectionToString(Direction direction) {
+    switch (direction)
+    {
+    case 0:
+        return "UP";
+        break;
+    case 1:
+        return "DOWN";
+    case 2:
+        return "LEFT";
+    case 3:
+        return "RIGHT";
+    default:
+        return "INVALID";
+    }
+
+    // Shouldn't reach here
+    return "INVALID";
 }
